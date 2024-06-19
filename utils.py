@@ -58,10 +58,9 @@ def find_relevant_document(client, query, document_embeddings, document_chunks):
 def generate_response(client, conversation_history, document_embeddings, document_chunks):
     relevant_document = find_relevant_document(client, conversation_history[-1]["content"], document_embeddings, document_chunks)
 
-    messages=[
-        {"role": "system", "content": f"Document: {relevant_document}"},
-        {"role": "user", "content": conversation_history[-1]['content']}
-    ]
+    messages = conversation_history[:-1]
+    messages.append({"role": "system", "content": f"Document: {relevant_document}"})
+    messages.append({"role": "user", "content": conversation_history[-1]['content']})
 
     try:
         response = client.chat.completions.create(
