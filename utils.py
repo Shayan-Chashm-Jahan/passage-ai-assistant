@@ -18,6 +18,15 @@ def load_documents(directory):
         print(f"Error loading documents: {e}")
     return documents
 
+def load_instructions():
+    name = "instructions.txt"
+
+    try:
+        with open(name, 'r') as file:
+            return file.read()
+    except Exception as e:
+        print(e)
+
 def split_text(text, max_tokens=6000, gaps=500):
     words = text.split()
     chunks = []

@@ -18,10 +18,12 @@ def handle_user_input():
         st.session_state.conversation_history.append({"role": "assistant", "content": response})
         st.session_state.user_input = ""
 
+instructions = utils.load_instructions()
+print(instructions)
 
 if 'conversation_history' not in st.session_state:
-    st.session_state.conversation_history = [{"role": "system", "content": "Your name is Ella. And you are a helpful assistant for passage, using the documents you have. You answer all the questions related to the documents provided to you. But if you don't find a relevant document you say that you cannot answer anything unrelated to passage and immigration, and ask them how you can assist them about them. Also, each time propose 3 follow-up questions that the user might have next and ask the user if they want the answer to any of these questions."}]
-
+    st.session_state.conversation_history = [{"role": "system", "content": instructions}]
+    
 st.title("Passage AI Assistant")
 
 query = st.text_input("Enter your query:", key="user_input", on_change=handle_user_input)
