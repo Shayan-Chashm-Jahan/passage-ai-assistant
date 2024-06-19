@@ -66,8 +66,8 @@ def question_parts(client, conversation_history):
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=conversation_history,
-            temperature=0.7
+            messages=[conversation_history[0], conversation_history[-1]],
+            temperature=0
         )
         return response.choices[0].message.content.strip()
     except Exception as e:

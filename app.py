@@ -1,126 +1,68 @@
 from openai import OpenAI
 import streamlit as st
-import pickle
 import utils 
 import json
+import time
+import load_funcs
 
-api_key = st.secrets["OPENAI_API_KEY"]
-qp_api_key = st.secrets["QP_OPENAI_API_KEY"]
+ELLA_API_KEY = None
+ella_client = None
+ella_instructions = None
 
-client = OpenAI(api_key=api_key)
-qp_client = OpenAI(api_key=qp_api_key)
+SPLITTER_API_KEY = None
+splitter_client = None
+splitter_instructions = None
 
-with open('embeddings.pkl', 'rb') as f:
-    document_embeddings, document_chunks = pickle.load(f)
+document_embeddings = None
+document_chunks = None
+
+def initialize():
+    global document_embeddings, document_chunks
+
+    document_embeddings, document_chunks = load_funcs.load_embeddings("embeddings.pkl")
+
+    global ELLA_API_KEY, ella_client, ella_instructions
+    
+    ELLA_API_KEY = st.secrets["ELLA_OPENAI_API_KEY"]
+    ella_client = OpenAI(api_key=ELLA_API_KEY)
+    ella_instructions = load_funcs.load_instructions("ella_instructions.txt")
+
+    global SPLITTER_API_KEY, splitter_client, splitter_instructions
+
+    SPLITTER_API_KEY = st.secrets["SPLITTER_OPENAI_API_KEY"]
+    splitter_client = OpenAI(api_key=SPLITTER_API_KEY)
+    splitter_instructions = load_funcs.load_instructions("splitter_instructions.txt")
+
+initialize()
+
+if 'ella_conversation_history' not in st.session_state:
+    st.session_state.ella_conversation_history = [{"role": "system", "content": ella_instructions}]
+
+if 'splitter_conversation_history' not in st.session_state:
+    st.session_state.splitter_conversation_history = [{"role": "system", "content": splitter_instructions}]
+
+st.title("Passage AI Assistant")
 
 def handle_user_input():
     user_input = st.session_state.user_input
 
     if user_input:
-        st.session_state.conversation_history.append({"role": "user", "content": user_input})
-        st.session_state.qp_conversation_history.append({"role": "user", "content": user_input})
+        st.session_state.ella_conversation_history.append({"role": "user", "content": user_input})
+        st.session_state.splitter_conversation_history.append({"role": "user", "content": user_input})
         
-        question_parts_json = utils.question_parts(qp_client, st.session_state.qp_conversation_history)
-        question_parts = json.loads(question_parts_json)
-        response = utils.generate_response(client, st.session_state.conversation_history, document_embeddings, document_chunks, question_parts["questions"])
-        st.session_state.conversation_history.append({"role": "assistant", "content": response})
+        parts = utils.question_parts(splitter_client, st.session_state.splitter_conversation_history)
+        parts_dict = json.loads(parts)
+
+        response = utils.generate_response(ella_client, st.session_state.ella_conversation_history, document_embeddings, document_chunks, parts_dict["parts"])
+        st.session_state.ella_conversation_history.append({"role": "assistant", "content": response})
         st.session_state.user_input = ""
-
-instructions = utils.load_instructions("instructions.txt")
-qp_instructions = utils.load_instructions("qp_instructions.txt")
-
-if 'conversation_history' not in st.session_state:
-    st.session_state.conversation_history = [{"role": "system", "content": instructions}]
-
-if 'qp_conversation_history' not in st.session_state:
-    st.session_state.qp_conversation_history = [{"role": "system", "content": qp_instructions}]
-
-st.title("Passage AI Assistant")
 
 query = st.text_input("Enter your query:", key="user_input", on_change=handle_user_input)
 submit_button = st.button("Send", on_click=handle_user_input)
 
 st.markdown("### Conversation History")
-for message in st.session_state.get('conversation_history', []):
+for message in st.session_state.get('ella_conversation_history', []):
     if message['role'] == 'assistant':
-        st.markdown(f"**Assistant:** {message['content']}")
+        st.markdown(f"**Ella:** {message['content']}")
     elif message['role'] == 'user':
         st.markdown(f"**You:** {message['content']}")
-
-    
-st.markdown("""
-<style>
-    body {
-        background-color: #F7F9FB;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #333;
-    }
-    .input-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    .stTextInput input {
-        border: 1px solid #D1D5DB;
-        border-radius: 4px;
-        padding: 12px;
-        font-size: 16px;
-        flex: 1;
-        transition: border-color 0.3s;
-    }
-    .stTextInput input:focus {
-        border-color: #1F2937;
-        outline: none;
-    }
-    .stButton button {
-        background-color: #1F2937;
-        color: #FFF;
-        border: none;
-        border-radius: 4px;
-        padding: 12px 20px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.3s, color 0.3s;
-        margin-left: 10px;
-    }
-    .stButton button:hover {
-        background-color: #FFF;
-        color: #1F2937;
-        border: 1px solid #1F2937;
-    }
-    .stMarkdown p {
-        font-size: 16px;
-        line-height: 1.6;
-        margin-bottom: 10px;
-    }
-    .stContainer {
-        max-width: 800px;
-        margin: auto;
-        padding: 20px;
-        background-color: #FFF;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        border: 2px solid orange; /* Orange border around the chatbot */
-    }
-    .stTitle {
-        font-size: 24px;
-        font-weight: bold;
-        color: #1F2937;
-        margin-bottom: 20px;
-    }
-    .stSubheader {
-        font-size: 20px;
-        color: #1F2937;
-        margin-bottom: 15px;
-    }
-    .chat-history {
-        background-color: #FFF;
-        border: 1px solid #D1D5DB;
-        border-radius: 4px;
-        padding: 10px;
-        margin-bottom: 20px;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-</style>
-            """, unsafe_allow_html=True)
