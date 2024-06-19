@@ -1,0 +1,17 @@
+COLLEGE, PROGRAM NAME, DIPLOMA / CERTIFICATE, POSTGRADUATE, DEGREE
+Algonquin	GAS - EAP	Level 6 – 70% min.	N/A	Level 6 – 73% min.
+Cambrian	GAS – EAP	Level B – 70% min.	N/A	Level B – 80% min.
+Canadore	EAP	EAP200, EAP210, EAP220, EAP230, EAP240 – 60% min. overall 2.0 GPA	N/A	N/A
+Centennial	GAS – EAP	Level 3 – 60%min	N/A	N/A
+Confederation	EAP	LA550 – 65% min. Two credit courses – 60%min. in two courses	N/A	LA550 – 75% min. CS007 – 70% min. GE113 – 70% min.
+Fanshawe	EAP	Level 8 – 80% min. or Level 9 – 75% min. or Level 10 – 70% min.	N/A	Level 10 – 75% min.
+Fleming	ELB	Level 8 – 70% min.	N/A	N/A
+George Brown	GAS – EAP (R115)	Level 8 – 60% min.	Level 9 – 60% min.	Level 9 – 60% min.
+Georgian	EAP	Level 8 – 60% min. no mark below 50%	N/A	N/A
+Humber	GAS – EAP	Level 8 – 60% min.	N/A	Level 8 – 75% min.
+Lambton	EASL	EAP High-Intermediate – 70% min.	N/A	N/A
+Mohawk	GAS – EAP	Level 8 – 70% min. COMM10328 – 50% min. COMM10303 – 50% min.	N/A	N/A
+Niagara	EAP	Level 5 – 70% min. no mark below 50%	N/A	Level 5 – 75% min. no grade below 60%
+Seneca	ELI	Level 8 – 60% min.	N/A	Level 8 – 70% min. ELI950 – 60% min.
+Sheridan	EAP	EASL69040 – 70% min. EASL69020 – 70% min.	N/A	EAP – 75% min.
+St Lawrence	GAS – EAP	Advanced Plus C – 60% min. Advanced B – 70% min.	N/A	Advanced Plus – 70% min.

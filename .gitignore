@@ -1,0 +1,6 @@
+.env
+myenv/
+*.py[cod]
+.streamlit/secrets.toml
+.DS_Store
+.vscode/

@@ -1,0 +1,7 @@
+LANGUAGE SCHOOL, PROGRAM NAME, DIPLOMA / CERTIFICATE, POSTGRADUATE, DEGREE
+EC	Canadian University Pathway	Pre-Advanced	Advanced	Advanced
+ELS Language Centres	University Pathway	ELS Level 109 Certificate	ELS Level 112 Certificate	ELS Level 112 Certificate
+English School of Canada (ESC)	University College Transfer Program	UCTP Certificate – 65% min.	UCTP Certificate – 75% min.	UTCP Certificate – 80% min.
+ILAC	University Pathway Program or ILAC International College	University Pathway Certificate – Intensive or Power, Level 3.2 or higher	University Pathway Certificate – Intensive or Power, Level 3.2 or higher	University Pathway Certificate – Intensive or Power, Level 3.3 or higher
+ILSC	University Pathway Program	Level A2 Certificate	Level A2 Certificate	Level A2 Certificate
+St George International College (SGIC)	University College Pathway Program	SGIC UCPP Certificate	SGIC UCPP Certificate + GBC EAP Level 9	SGIC UCPP Certificate + GBC EAP Level 9
