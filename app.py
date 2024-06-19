@@ -2,9 +2,13 @@ from openai import OpenAI
 import streamlit as st
 import pickle
 import utils 
+import json
 
 api_key = st.secrets["OPENAI_API_KEY"]
+qp_api_key = st.secrets["QP_OPENAI_API_KEY"]
+
 client = OpenAI(api_key=api_key)
+qp_client = OpenAI(api_key=qp_api_key)
 
 with open('embeddings.pkl', 'rb') as f:
     document_embeddings, document_chunks = pickle.load(f)
@@ -14,16 +18,23 @@ def handle_user_input():
 
     if user_input:
         st.session_state.conversation_history.append({"role": "user", "content": user_input})
-        response = utils.generate_response(client, st.session_state.conversation_history, document_embeddings, document_chunks)
+        st.session_state.qp_conversation_history.append({"role": "user", "content": user_input})
+        
+        question_parts_json = utils.question_parts(qp_client, st.session_state.qp_conversation_history)
+        question_parts = json.loads(question_parts_json)
+        response = utils.generate_response(client, st.session_state.conversation_history, document_embeddings, document_chunks, question_parts["questions"])
         st.session_state.conversation_history.append({"role": "assistant", "content": response})
         st.session_state.user_input = ""
 
-instructions = utils.load_instructions()
-print(instructions)
+instructions = utils.load_instructions("instructions.txt")
+qp_instructions = utils.load_instructions("qp_instructions.txt")
 
 if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = [{"role": "system", "content": instructions}]
-    
+
+if 'qp_conversation_history' not in st.session_state:
+    st.session_state.qp_conversation_history = [{"role": "system", "content": qp_instructions}]
+
 st.title("Passage AI Assistant")
 
 query = st.text_input("Enter your query:", key="user_input", on_change=handle_user_input)

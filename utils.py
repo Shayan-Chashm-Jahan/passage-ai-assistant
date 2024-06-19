@@ -18,9 +18,7 @@ def load_documents(directory):
         print(f"Error loading documents: {e}")
     return documents
 
-def load_instructions():
-    name = "instructions.txt"
-
+def load_instructions(name):
     try:
         with open(name, 'r') as file:
             return file.read()
@@ -64,11 +62,26 @@ def find_relevant_document(client, query, document_embeddings, document_chunks):
     most_relevant_index = similarities.argmax()
     return document_chunks[most_relevant_index]
 
-def generate_response(client, conversation_history, document_embeddings, document_chunks):
-    relevant_document = find_relevant_document(client, conversation_history[-1]["content"], document_embeddings, document_chunks)
+def question_parts(client, conversation_history):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=conversation_history,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return str(e)
+
+
+def generate_response(client, conversation_history, document_embeddings, document_chunks, question_parts):
+    relevant_documents = [find_relevant_document(client, question_part, document_embeddings, document_chunks) for question_part in question_parts]
 
     messages = conversation_history[:-1]
-    messages.append({"role": "system", "content": f"Document: {relevant_document}"})
+
+    for relevant_document in relevant_documents:
+        messages.append({"role": "system", "content": f"Document: {relevant_document}"})
+    
     messages.append({"role": "user", "content": conversation_history[-1]['content']})
 
     try:
