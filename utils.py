@@ -67,29 +67,101 @@ def question_parts(client, conversation_history):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[conversation_history[0], conversation_history[-1]],
-            temperature=0
+            temperature=0.05
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         return str(e)
 
+def find_matching_program(interests):
+    result = {
+        "interests": interests,
+        "response": "English for Academic Purposes (EAP)"
+    }
+    return json.dumps(result)
 
-def generate_response(client, conversation_history, document_embeddings, document_chunks, question_parts):
-    relevant_documents = [find_relevant_document(client, question_part, document_embeddings, document_chunks) for question_part in question_parts]
+def generate_response(client, tools, conversation_history, document_embeddings, document_chunks, prompt_parts_dict):
+    non_suggestion_relevant_documents = [find_relevant_document(client, prompt_part, document_embeddings, document_chunks) for prompt_part in prompt_parts_dict["non-suggestions"]]
 
     messages = conversation_history[:-1]
 
-    for relevant_document in relevant_documents:
-        messages.append({"role": "system", "content": f"Document: {relevant_document}"})
-    
-    messages.append({"role": "user", "content": conversation_history[-1]['content']})
-
     try:
-        response = client.chat.completions.create(
+        user_prompt = ""
+
+        if len(prompt_parts_dict["suggestion-based"]) > 0:
+            messages.append({"role": "user", "content": prompt_parts_dict["suggestion-based"][0]})
+
+            # print(f"""{prompt_parts_dict["suggestion-based"][0]=}""")
+
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                temperature=0.1
+            )
+            response_message = response.choices[0].message
+            tool_calls = response_message.tool_calls
+
+            if tool_calls:
+                messages.append(response_message)
+
+                available_functions = {
+                    "find_matching_program": find_matching_program,
+                }
+
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_to_call = available_functions[function_name]
+                    function_args = json.loads(tool_call.function.arguments)
+
+                    function_response = function_to_call(
+                        interests=function_args.get("interests"),
+                    )
+
+                    # print(f"{function_response=}")
+
+                    messages.append(
+                        {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": function_response,
+                        }
+                    )
+
+                    matched_program_document = find_relevant_document(client, function_response, document_embeddings, document_chunks)
+                
+                    messages.append({"role": "system", "content": f"For the program suggestion part of your response, just use the information provided in the following document: {matched_program_document}"})
+                    user_prompt += prompt_parts_dict["suggestion-based"][0]
+                    # messages.append({"role": "system", "content": "About the suggestion part, do not forget to suggest based on the document I sent you above."})
+        
+        if len(prompt_parts_dict["non-suggestions"]) > 0:
+            for relevant_document in non_suggestion_relevant_documents:
+                    messages.append({"role": "system", "content": f"Document: {relevant_document}"})
+
+            messages.append({"role": "system", "content": "If the user asks several questions or suggestions, make sure to answer all of them using the information I sent you above the questions and statements."})
+            
+            non_suggestions = ' '.join(prompt_parts_dict["non-suggestions"])
+            user_prompt = non_suggestions + " " + user_prompt
+
+        # print(f"{user_prompt=}")
+
+        messages.append({"role": "system", "content": "Make sure to answer all of the user questions and statements. Do not ignore any of the questions. Answer in JSON format."})
+        messages.append({"role": "user", "content": user_prompt})
+
+        # print(f"{prompt_parts_dict=}")
+
+        # print(messages[-1])
+
+        second_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.7
+            temperature=0.1,
         )
-        return response.choices[0].message.content.strip()
+
+        return second_response
+
     except Exception as e:
+        print(f"{str(e)}")
         return str(e)
