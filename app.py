@@ -79,12 +79,16 @@ if 'splitter_conversation_history' not in st.session_state:
 if 'matchbuddy_conversation_history' not in st.session_state:
     st.session_state.matchbuddy_conversation_history = [{"role": "system", "content": matchbuddy_instructions}]
 
+if 'response_dict' not in st.session_state:
+    st.session_state.response_dict = {"response": "", "follow-up": []}
+
 st.title("Passage AI Assistant")
 
-response_dict = {"respone": "", "follow-up": []}
-
-def handle_user_input():
-    user_input = st.session_state.user_input
+def handle_user_input(user_input=None):
+    flag = 0
+    if user_input is None:
+        user_input = st.session_state.user_input
+        flag += 1
 
     if user_input:
         st.session_state.splitter_conversation_history.append({"role": "user", "content": user_input})
@@ -98,13 +102,12 @@ def handle_user_input():
         
         response_text = ella_response.choices[0].message.content.strip()
         
-        global response_dict
-        response_dict = json.loads(response_text)
+        st.session_state.response_dict = json.loads(response_text)
 
-        st.session_state.ella_conversation_history.append({"role": "assistant", "content": response_dict["response"]})
+        st.session_state.ella_conversation_history.append({"role": "assistant", "content": st.session_state.response_dict["response"]})
 
-        # st.session_state.ella_conversation_history.append({"role": "assistant", "content": final_response})
-        st.session_state.user_input = ""
+        if flag > 0:
+            st.session_state.user_input = ""
 
 query = st.text_input("Enter your query:", key="user_input", on_change=handle_user_input)
 submit_button = st.button("Send", on_click=handle_user_input)
@@ -116,9 +119,9 @@ for message in st.session_state.get('ella_conversation_history', []):
     elif message['role'] == 'user':
         st.markdown(f"**You:** {message['content']}")
 
-for question in response_dict["follow-up"]:
-    if st.button(question):
-        st.session_state.clicked_button = question
-
-if 'clicked_button' not in st.session_state:
-    st.session_state.clicked_button = None
+if st.session_state.response_dict["follow-up"]:
+    for question in st.session_state.response_dict["follow-up"]:
+        if st.button(question):
+            handle_user_input(question)
+            st.session_state.clicked_button = question
+            st.experimental_rerun()
