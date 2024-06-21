@@ -73,10 +73,12 @@ def question_parts(client, conversation_history):
     except Exception as e:
         return str(e)
 
-def find_matching_program(interests):
+def find_matching_program(client, document_embeddings, document_chunks, interests):
+    matching_program_doc = find_relevant_document(client, interests, document_embeddings, document_chunks)
+
     result = {
         "interests": interests,
-        "response": "English for Academic Purposes (EAP)"
+        "response": f"The document of the matching program: {matching_program_doc}"
     }
     return json.dumps(result)
 
@@ -90,8 +92,6 @@ def generate_response(client, tools, conversation_history, document_embeddings, 
 
         if len(prompt_parts_dict["suggestion-based"]) > 0:
             messages.append({"role": "user", "content": prompt_parts_dict["suggestion-based"][0]})
-
-            # print(f"""{prompt_parts_dict["suggestion-based"][0]=}""")
 
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -116,10 +116,11 @@ def generate_response(client, tools, conversation_history, document_embeddings, 
                     function_args = json.loads(tool_call.function.arguments)
 
                     function_response = function_to_call(
+                        client,
+                        document_embeddings,
+                        document_chunks,
                         interests=function_args.get("interests"),
                     )
-
-                    # print(f"{function_response=}")
 
                     messages.append(
                         {
@@ -145,14 +146,8 @@ def generate_response(client, tools, conversation_history, document_embeddings, 
             non_suggestions = ' '.join(prompt_parts_dict["non-suggestions"])
             user_prompt = non_suggestions + " " + user_prompt
 
-        # print(f"{user_prompt=}")
-
         messages.append({"role": "system", "content": "Make sure to answer all of the user questions and statements. Do not ignore any of the questions. Answer in JSON format."})
         messages.append({"role": "user", "content": f"Please provide a response in JSON format. Prompt: {user_prompt}"})
-
-        # print(f"{prompt_parts_dict=}")
-
-        # print(messages[-1])
 
         second_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
