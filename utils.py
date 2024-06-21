@@ -148,7 +148,7 @@ def generate_response(client, tools, conversation_history, document_embeddings, 
         # print(f"{user_prompt=}")
 
         messages.append({"role": "system", "content": "Make sure to answer all of the user questions and statements. Do not ignore any of the questions. Answer in JSON format."})
-        messages.append({"role": "user", "content": user_prompt})
+        messages.append({"role": "user", "content": f"Please provide a response in JSON format. Prompt: {user_prompt}"})
 
         # print(f"{prompt_parts_dict=}")
 

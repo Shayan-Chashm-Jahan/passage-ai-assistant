@@ -5,19 +5,6 @@ import json
 import time
 import load_funcs
 
-ELLA_API_KEY = None
-ella_client = None
-ella_instructions = None
-
-SPLITTER_API_KEY = None
-splitter_client = None
-splitter_instructions = None
-
-document_embeddings = None
-document_chunks = None
-
-tools = None
-
 def initialize():
     global document_embeddings, document_chunks
 
@@ -86,8 +73,10 @@ def handle_user_input(user_input=None):
 
         ella_response = utils.generate_response(ella_client, tools, st.session_state.ella_conversation_history, document_embeddings, document_chunks, parts_dict)
         
+        print(f"{ella_response=}")
+
         response_text = ella_response.choices[0].message.content.strip()
-        
+
         st.session_state.response_dict = json.loads(response_text)
 
         st.session_state.ella_conversation_history.append({"role": "assistant", "content": st.session_state.response_dict["response"]})
@@ -110,4 +99,4 @@ if st.session_state.response_dict["follow-up"]:
         if st.button(question):
             handle_user_input(question)
             st.session_state.clicked_button = question
-            st.experimental_rerun()
+            st.rerun()
