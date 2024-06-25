@@ -1,8 +1,5 @@
-from typing import override
 from openai import OpenAI
 import streamlit as st
-import load_funcs
-import json
 
 def handle_user_input(user_input=None):
   flag = 0
