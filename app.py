@@ -4,6 +4,8 @@ from openai import OpenAI
 import streamlit as st
 import load_funcs
 
+from logs_notion import write_row
+
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
 assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
@@ -107,6 +109,8 @@ def handle_user_input(user_input=None):
 
       for t in threads:
         t.join()
+
+      write_row("title", st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 
   if flag > 0:
     st.session_state.user_input = ""  
