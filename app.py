@@ -3,6 +3,7 @@ import time
 from openai import OpenAI
 import streamlit as st
 import load_funcs
+from datetime import datetime
 
 from logs_notion import write_row
 
@@ -15,7 +16,6 @@ second_client = OpenAI(api_key=SECOND_API_KEY)
 suggestion_assistant = client.beta.assistants.retrieve(st.secrets["SECOND_ASSISTANT_ID"])
 
 def initialize_conversation():
-
   if 'thread' not in st.session_state:
     st.session_state.thread = client.beta.threads.create()
 
@@ -27,6 +27,9 @@ def initialize_conversation():
 
   if 'follow_ups' not in st.session_state:
     st.session_state.follow_ups = None
+
+  if 'feedback_flag' not in st.session_state:
+    st.session_state.feedback_flag = False
 
   initial_messages = ["How to start?", "What is GBC?", "What are the programs offered at George Brown University?"]
 
@@ -110,6 +113,8 @@ def handle_user_input(user_input=None):
       for t in threads:
         t.join()
 
+      st.session_state.feedback_flag = True
+
       write_row("title", st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 
   if flag > 0:
@@ -123,3 +128,13 @@ if st.session_state.follow_ups:
             handle_user_input(question)
             st.session_state.clicked_button = question
             st.rerun()
+
+if st.session_state.feedback_flag:
+  st.container().markdown("Was the answer helpful?")
+  feedbacks = ["👍 Accurate", "🤔 Could have been better", "👎 Irrelevant or misinformation"]
+
+  for feedback in feedbacks:
+    if st.button(feedback):
+        st.session_state.feedback_flag = False
+        write_row("title", st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), feedback)
+        st.rerun()
