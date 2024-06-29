@@ -57,18 +57,22 @@ def generate_response_func():
       stream=True
     )
 
-  report = []
+  while True:
+    report = []
 
-  for event in stream:
-      if event.data.object == "thread.message.delta":
-        for content in event.data.delta.content:
-            if content.type == 'text':
-              report.append(content.text.value)
-              assistant_response = "".join(report).strip()
-              res_box.markdown(f"Assistant: {assistant_response}")
+    for event in stream:
+        if event.data.object == "thread.message.delta":
+          for content in event.data.delta.content:
+              if content.type == 'text':
+                report.append(content.text.value)
+                assistant_response = "".join(report).strip()
+                res_box.markdown(f"Assistant: {assistant_response}")
 
-  assistant_response = "".join(report).strip()
-  st.session_state.conversation_history.append({"role": "assistant", "content": assistant_response})
+    assistant_response = "".join(report).strip()
+
+    if assistant_response != "":
+      st.session_state.conversation_history.append({"role": "assistant", "content": assistant_response})
+      break
 
 def suggest_prompt_func(user_input):
   second_client.beta.threads.messages.create(
@@ -88,7 +92,7 @@ def suggest_prompt_func(user_input):
 
     new_message = messages.data[0].content[0].text.value
 
-    if new_message != user_input:
+    if True:
       st.session_state.follow_ups = new_message.split('#')
       break
 
