@@ -31,7 +31,7 @@ def initialize_conversation():
   if 'feedback_flag' not in st.session_state:
     st.session_state.feedback_flag = False
 
-  initial_messages = ["How to start?", "What is GBC?", "What are the programs offered at George Brown University?"]
+  initial_messages = ["What are the benefits of studying at George Brown College?", "What are the admission requirements for international students?", "What support services are available for students at George Brown College?"]
 
   st.session_state.follow_ups = initial_messages
 
@@ -49,7 +49,8 @@ st.container().markdown(history_text)
 res_box = st.empty()
 
 def generate_response_func():
-  stream = client.beta.threads.create_and_run(
+  while True:
+    stream = client.beta.threads.create_and_run(
       assistant_id=assistant.id,
       thread={
         "messages": st.session_state.conversation_history
@@ -57,7 +58,8 @@ def generate_response_func():
       stream=True
     )
 
-  while True:
+    time.sleep(1)
+
     report = []
 
     for event in stream:
@@ -69,6 +71,8 @@ def generate_response_func():
                 res_box.markdown(f"Assistant: {assistant_response}")
 
     assistant_response = "".join(report).strip()
+
+    print(f"{assistant_response=}")
 
     if assistant_response != "":
       st.session_state.conversation_history.append({"role": "assistant", "content": assistant_response})
@@ -88,11 +92,15 @@ def suggest_prompt_func(user_input):
     ) as stream:
       stream.until_done()
 
+    time.sleep(1)
+
     messages = second_client.beta.threads.messages.list(thread_id=st.session_state.second_thread.id)
 
     new_message = messages.data[0].content[0].text.value
 
-    if True:
+    print(f"{new_message=}")
+
+    if new_message != user_input:
       st.session_state.follow_ups = new_message.split('#')
       break
 
