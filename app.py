@@ -268,7 +268,7 @@ if selected == "Home":
 
   if st.session_state.follow_ups and st.session_state.interview == "":
     for question in st.session_state.follow_ups:
-      if st.button(f"💬 {question}"):
+      if st.button(f"{question[:-1]}❓"):
         handle_user_input(question)
         st.session_state.clicked_button = question
         st.rerun()
