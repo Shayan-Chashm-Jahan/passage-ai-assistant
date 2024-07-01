@@ -5,6 +5,7 @@ import streamlit as st
 import load_funcs
 from datetime import datetime
 import re
+from streamlit_option_menu import option_menu
 
 from logs_notion import write_row
 
@@ -35,6 +36,9 @@ def initialize_conversation():
   if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
 
+  if 'showing_conversation_history' not in st.session_state:
+    st.session_state.showing_conversation_history = []
+
   if 'follow_ups' not in st.session_state:
     st.session_state.follow_ups = None
 
@@ -57,25 +61,24 @@ def initialize_conversation():
 if 'thread' not in st.session_state:
   initialize_conversation()
 
+# with st.sidebar:
+#     selected = option_menu(
+#         "Main Menu", ["--- Label ---", "Home", "About", "Contact"],
+#         icons=['', 'house', 'info', 'envelope'],
+#         menu_icon="cast", default_index=1)
+
 history_text = ""
-for message in st.session_state.get('conversation_history', []):
-    if message['role'] == 'assistant':
-        history_text += f"Assistant: {message['content']}\n\n"
-    elif message['role'] == 'user':
-        history_text += f"You: {message['content']}\n\n"
-
-if st.session_state.interview != "":
-  if st.session_state.interview == "END":
-    st.session_state.interview = "The interview is over!"
-
-  history_text = history_text + "\n\n##### **" + st.session_state.interview + "**"
-
-  if st.session_state.interview == "The interview is over!":
-    st.session_state.interview = ""
-  else:
-    st.session_state.interview = "You are in the interview mode..."
+for message in st.session_state.get('showing_conversation_history', []):
+  if message['role'] == 'assistant':
+    history_text += f"Assistant: {message['content']}\n\n"
+  elif message['role'] == 'user':
+    history_text += f"You: {message['content']}\n\n"
+  elif message['role'] == 'interviewer':
+    history_text += f"Interviewer: {message['content']}\n\n"
+      
 
 st.container().markdown(history_text)
+
 res_box = st.empty()
 
 def generate_response_func(user_input):
@@ -118,6 +121,7 @@ def generate_response_func(user_input):
 
         if assistant_response != "":
           st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+          st.session_state.showing_conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
           break
 
   if st.session_state.interview != "":
@@ -132,7 +136,9 @@ def generate_response_func(user_input):
 
         else:
           st.session_state.interviewer_messages.append({"role": "user", "content": user_input})
-          st.session_state.conversation_history.append({"role": "user", "content": user_input})
+          # st.session_state.conversation_history.append({"role": "user", "content": user_input})
+          # st.session_state.showing_conversation_history.append({"role": "user", "content": user_input})
+          
 
         stream = interviewer_client.beta.threads.create_and_run(
         assistant_id=interviewer_assistant.id,
@@ -152,6 +158,10 @@ def generate_response_func(user_input):
                   if content.type == 'text':
                     report.append(content.text.value)
                     assistant_response = "".join(report).strip()
+
+                    if assistant_response[-1] == "#":
+                      assistant_response = assistant_response[:-1]
+                    
                     res_box.markdown(f"You: {user_input}\n\nInterviewer: {cleaned_response(assistant_response)}")
 
         assistant_response = "".join(report).strip()
@@ -168,6 +178,7 @@ def generate_response_func(user_input):
 
             st.session_state.interviewer_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
             st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+            st.session_state.showing_conversation_history.append({"role": "interviewer", "content": cleaned_response(assistant_response)})
             
             break
 
@@ -206,6 +217,7 @@ def handle_user_input(user_input=None):
 
   if user_input:
       st.session_state.conversation_history.append({"role": "user", "content": user_input})
+      st.session_state.showing_conversation_history.append({"role": "user", "content": user_input})
 
       threads = [
         Thread(target=generate_response_func(user_input)),
@@ -220,19 +232,46 @@ def handle_user_input(user_input=None):
 
       st.session_state.feedback_flag = True
 
-      write_row("title", st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
+      write_row("title", st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 
   if flag > 0:
     st.session_state.user_input = ""  
 
 query = st.text_input(label="Enter your query:", key="user_input", on_change=handle_user_input, label_visibility="hidden", placeholder="Message Passage Assistant")
 
-if st.session_state.follow_ups:
-    for question in st.session_state.follow_ups:
-        if st.button(question):
-            handle_user_input(question)
-            st.session_state.clicked_button = question
-            st.rerun()
+def colored_box(text, color):
+  return st.container().markdown(
+    f"""
+    <div style="background-color: {color}; padding: 10px; border-radius: 5px;">
+        <p style="color: white;">{text}</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+  )
+
+if st.session_state.interview != "":
+  if st.session_state.interview == "END":
+    st.session_state.interview = "The interview is over!"
+
+  # st.container().markdown("**" + st.session_state.interview + "**")
+  st.container().markdown(f"""
+    <div style="background-color: #000000; padding: 5px; border-radius: 5px; text-align: center;">
+        <p style="color: white; font-size: 20px; margin: 0;"> {st.session_state.interview}</p>
+    </div>
+    """, unsafe_allow_html=True)
+  # colored_box("**" + st.session_state.interview + "**", "#FFFFFF")
+
+  if st.session_state.interview == "The interview is over!":
+    st.session_state.interview = ""
+  else:
+    st.session_state.interview = "You are in the interview mode..."
+
+if st.session_state.follow_ups and st.session_state.interview == "":
+  for question in st.session_state.follow_ups:
+    if st.button(f"💬 {question}"):
+      handle_user_input(question)
+      st.session_state.clicked_button = question
+      st.rerun()
 
 if st.session_state.feedback_flag:
   st.container().markdown("Was the answer helpful?")
@@ -241,5 +280,5 @@ if st.session_state.feedback_flag:
   for feedback in feedbacks:
     if st.button(feedback):
         st.session_state.feedback_flag = False
-        write_row("title", st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), feedback)
+        write_row("title", st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), feedback)
         st.rerun()
