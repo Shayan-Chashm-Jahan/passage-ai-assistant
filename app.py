@@ -101,7 +101,8 @@ def generate_response_func(user_input):
                 if content.type == 'text':
                   report.append(content.text.value)
                   assistant_response = "".join(report).strip()
-                  res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
+                  if assistant_response != "" and assistant_response[0] != '&':
+                    res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
 
       assistant_response = "".join(report).strip()
 
