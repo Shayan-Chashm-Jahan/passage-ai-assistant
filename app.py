@@ -14,7 +14,11 @@ assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
 
 SECOND_API_KEY = st.secrets["SECOND_API_KEY"]
 second_client = OpenAI(api_key=SECOND_API_KEY)
-suggestion_assistant = client.beta.assistants.retrieve(st.secrets["SECOND_ASSISTANT_ID"])
+suggestion_assistant = second_client.beta.assistants.retrieve(st.secrets["SECOND_ASSISTANT_ID"])
+
+INTERVIEWER_API_KEY = st.secrets["INTERVIEWER_API_KEY"]
+interviewer_client = OpenAI(api_key=INTERVIEWER_API_KEY)
+interviewer_assistant = interviewer_client.beta.assistants.retrieve(st.secrets["INTERVIEWER_ID"])
 
 def cleaned_response(response):
   cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
@@ -37,6 +41,15 @@ def initialize_conversation():
   if 'feedback_flag' not in st.session_state:
     st.session_state.feedback_flag = False
 
+  if 'interview' not in st.session_state:
+    st.session_state.interview = ""
+
+  if 'all_user_messages' not in st.session_state:
+    st.session_state.all_user_messages = ""
+
+  if 'interviewer_messages' not in st.session_state:
+    st.session_state.interviewer_messages = []
+
   initial_messages = ["What are the benefits of studying at George Brown College?", "What are the admission requirements for international students?", "What support services are available for students at George Brown College?"]
 
   st.session_state.follow_ups = initial_messages
@@ -51,44 +64,111 @@ for message in st.session_state.get('conversation_history', []):
     elif message['role'] == 'user':
         history_text += f"You: {message['content']}\n\n"
 
+if st.session_state.interview != "":
+  if st.session_state.interview == "END":
+    st.session_state.interview = "The interview is over!"
+
+  history_text = history_text + "\n\n##### **" + st.session_state.interview + "**"
+
+  if st.session_state.interview == "The interview is over!":
+    st.session_state.interview = ""
+  else:
+    st.session_state.interview = "You are in the interview mode..."
+
 st.container().markdown(history_text)
 res_box = st.empty()
 
 def generate_response_func(user_input):
-  while True:
-    stream = client.beta.threads.create_and_run(
-      assistant_id=assistant.id,
-      thread={
-        "messages": st.session_state.conversation_history
-      },
-      stream=True
-    )
+  if st.session_state.interview == "":
+    while True:
+      st.session_state.all_user_messages += user_input + "\n\n"
 
-    time.sleep(1)
+      stream = client.beta.threads.create_and_run(
+        assistant_id=assistant.id,
+        thread={
+          "messages": st.session_state.conversation_history
+        },
+        stream=True
+      )
 
-    report = []
+      time.sleep(1)
 
-    for event in stream:
-        if event.data.object == "thread.message.delta":
-          for content in event.data.delta.content:
-              if content.type == 'text':
-                report.append(content.text.value)
-                assistant_response = "".join(report).strip()
-                res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
+      report = []
 
-    assistant_response = "".join(report).strip()
+      for event in stream:
+          if event.data.object == "thread.message.delta":
+            for content in event.data.delta.content:
+                if content.type == 'text':
+                  report.append(content.text.value)
+                  assistant_response = "".join(report).strip()
+                  res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
 
-    # Use regular expression to find all sources in square brackets
-    sources = re.findall(r'【\d+:\d+†source】', assistant_response)
+      assistant_response = "".join(report).strip()
 
-    # Print the extracted sources
+      if assistant_response == "&&":
+        st.session_state.interview = "You entered the interview mode"
+        break
 
-    print(f"{assistant_response=}")
-    print("Sources found in the response:", sources)
+      else:
+        sources = re.findall(r'【\d+:\d+†source】', assistant_response)
 
-    if assistant_response != "":
-      st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
-      break
+        print(f"{assistant_response=}")
+        print("Sources found in the response:", sources)
+
+        if assistant_response != "":
+          st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+          break
+
+  if st.session_state.interview != "":
+     while True:
+        if st.session_state.all_user_messages != "":
+          if len(st.session_state.all_user_messages) > 10000:
+             st.session_state.all_user_messages = st.session_state.all_user_messages[-10000:]
+
+          st.session_state.interviewer_messages.append({"role": "user", "content": st.session_state.all_user_messages})
+
+          st.session_state.all_user_messages = ""
+
+        else:
+          st.session_state.interviewer_messages.append({"role": "user", "content": user_input})
+          st.session_state.conversation_history.append({"role": "user", "content": user_input})
+
+        stream = interviewer_client.beta.threads.create_and_run(
+        assistant_id=interviewer_assistant.id,
+        thread={
+          "messages": st.session_state.interviewer_messages
+        },
+        stream=True
+      )
+        
+        time.sleep(1)
+
+        report = []
+
+        for event in stream:
+            if event.data.object == "thread.message.delta":
+              for content in event.data.delta.content:
+                  if content.type == 'text':
+                    report.append(content.text.value)
+                    assistant_response = "".join(report).strip()
+                    res_box.markdown(f"You: {user_input}\n\nInterviewer: {cleaned_response(assistant_response)}")
+
+        assistant_response = "".join(report).strip()
+
+        sources = re.findall(r'【\d+:\d+†source】', assistant_response)
+
+        print(f"{assistant_response=}")
+        print("Sources found in the response:", sources)
+
+        if assistant_response != "":
+            if assistant_response[-1] == "#":
+              st.session_state.interview = "END"
+              assistant_response = assistant_response[:-1]
+
+            st.session_state.interviewer_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+            st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+            
+            break
 
 def suggest_prompt_func(user_input):
   second_client.beta.threads.messages.create(
