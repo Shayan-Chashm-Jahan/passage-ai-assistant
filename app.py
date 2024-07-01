@@ -4,6 +4,7 @@ from openai import OpenAI
 import streamlit as st
 import load_funcs
 from datetime import datetime
+import re
 
 from logs_notion import write_row
 
@@ -14,6 +15,11 @@ assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
 SECOND_API_KEY = st.secrets["SECOND_API_KEY"]
 second_client = OpenAI(api_key=SECOND_API_KEY)
 suggestion_assistant = client.beta.assistants.retrieve(st.secrets["SECOND_ASSISTANT_ID"])
+
+def cleaned_response(response):
+  cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
+  return cleaned_response
+
 
 def initialize_conversation():
   if 'thread' not in st.session_state:
@@ -48,7 +54,7 @@ for message in st.session_state.get('conversation_history', []):
 st.container().markdown(history_text)
 res_box = st.empty()
 
-def generate_response_func():
+def generate_response_func(user_input):
   while True:
     stream = client.beta.threads.create_and_run(
       assistant_id=assistant.id,
@@ -68,14 +74,20 @@ def generate_response_func():
               if content.type == 'text':
                 report.append(content.text.value)
                 assistant_response = "".join(report).strip()
-                res_box.markdown(f"Assistant: {assistant_response}")
+                res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
 
     assistant_response = "".join(report).strip()
 
+    # Use regular expression to find all sources in square brackets
+    sources = re.findall(r'【\d+:\d+†source】', assistant_response)
+
+    # Print the extracted sources
+
     print(f"{assistant_response=}")
+    print("Sources found in the response:", sources)
 
     if assistant_response != "":
-      st.session_state.conversation_history.append({"role": "assistant", "content": assistant_response})
+      st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
       break
 
 def suggest_prompt_func(user_input):
@@ -115,7 +127,7 @@ def handle_user_input(user_input=None):
       st.session_state.conversation_history.append({"role": "user", "content": user_input})
 
       threads = [
-        Thread(target=generate_response_func()),
+        Thread(target=generate_response_func(user_input)),
         Thread(target=suggest_prompt_func(user_input))
       ]
 
