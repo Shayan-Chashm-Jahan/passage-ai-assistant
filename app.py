@@ -1,6 +1,7 @@
 import json
 from threading import Thread
 import time
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 from openai import OpenAI
 import streamlit as st
@@ -308,18 +309,28 @@ if selected == "Chat":
 if selected == "About":
   st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
 
+def score_to_color(score):
+    score = max(0, min(100, score))
+    cmap = LinearSegmentedColormap.from_list("score_cmap", ["darkred", "darkgreen"])
+    return cmap(score / 100.0)
+
 def create_radial_bar(score, label, color):
-    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(5, 5))
+    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(3, 3))
     
     # Create the angles for the plot
-    angles = np.linspace(0, 2 * np.pi, 100)
+    angles = np.linspace(np.pi / 2, 2.5 * np.pi, 100)
     
     # Create values for the plot
     values = np.zeros(100)
-    values[:int(100 * score / 100)] = 1  # Only fill up to the score
+    values[100 - int(100 * score / 100):] = 1  # Only fill up to the score
 
     # Plot the radial bar
-    ax.fill(angles, values, color=color, alpha=0.3)
+    ax.fill(angles, values, color=color, alpha=1)
+
+    # Plot the inner white circle
+    inner_angles = np.linspace(0, 2 * np.pi, 100)
+    inner_values = np.ones(100) * 0.9  # Inner circle radius
+    ax.fill(inner_angles, inner_values, color='white', alpha=1.0)
     
     # Remove the radial ticks and labels
     ax.set_yticklabels([])
@@ -341,16 +352,26 @@ def create_radial_bar(score, label, color):
 if selected == "Assessment":
   if st.session_state.interview_done:
     s = st.session_state.score
+    s = re.sub(r'[“”]', '"', s)
     start = s.find('{')
     end = s.rfind('}')
     s = s[start:end+1]
+
+    print(f"{s=}")
+
     scores = json.loads(s)
 
     colors = ["red", "blue", "green", "orange"]
+    col1, col2 = st.columns(2)
 
-    for color, (label, info) in zip(colors, scores.items()):
-      fig = create_radial_bar(info['score'], label, color)
-      st.pyplot(fig)
-      st.write(info['reason'])
+    columns = [col1, col2, col1, col2]
+
+    for color, (label, info), col in zip(colors, scores.items(), columns):
+      if info['score'] < 5:
+        info['score'] = 5
+
+      fig = create_radial_bar(info['score'], label, score_to_color(info['score']))
+      col.pyplot(fig)
+      col.write(info['reason'])
   else:
     st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")
