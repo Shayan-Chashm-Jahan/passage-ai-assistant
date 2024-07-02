@@ -1,11 +1,14 @@
+import json
 from threading import Thread
 import time
+import numpy as np
 from openai import OpenAI
 import streamlit as st
 import load_funcs
 from datetime import datetime
 import re
 from streamlit_option_menu import option_menu
+import matplotlib.pyplot as plt
 
 from logs_notion import write_row
 
@@ -54,6 +57,12 @@ def initialize_conversation():
   if 'interviewer_messages' not in st.session_state:
     st.session_state.interviewer_messages = []
 
+  if 'interview_done' not in st.session_state:
+    st.session_state.interview_done = False
+
+  if 'score' not in st.session_state:
+    st.session_state.score = ""
+
   initial_messages = ["What are the benefits of studying at George Brown College?", "What are the admission requirements for international students?", "What support services are available for students at George Brown College?"]
 
   st.session_state.follow_ups = initial_messages
@@ -63,11 +72,12 @@ if 'thread' not in st.session_state:
 
 with st.sidebar:
     selected = option_menu(
-        "Main Menu", ["Home", "About"],
-        icons=['house', 'info'],
-        menu_icon="cast", default_index=1)
+        "Main Menu", ["About", "Chat", "Assessment"],
+        icons=['info', 'chat', 'clipboard-check'],
+        menu_icon="cast", default_index=1
+    )
 
-if selected == "Home":
+if selected == "Chat":
   history_text = ""
   for message in st.session_state.get('showing_conversation_history', []):
     if message['role'] == 'assistant':
@@ -157,22 +167,34 @@ def generate_response_func(user_input):
                     report.append(content.text.value)
                     assistant_response = "".join(report).strip()
 
-                    if assistant_response[-1] == "#":
-                      assistant_response = assistant_response[:-1]
+                    if "$$$" in assistant_response:
+                      parts = re.split(r'\$\$\$', assistant_response)
+                      assistant_response = parts[0]
                     
                     res_box.markdown(f"You: {user_input}\n\nInterviewer: {cleaned_response(assistant_response)}")
 
         assistant_response = "".join(report).strip()
+
+        if "$$$" in assistant_response:
+          parts = re.split(r'\$\$\$', assistant_response)
+          assistant_response = parts[0]
+          st.session_state.score = parts[1]
+
+          print(f"{len(parts)=}")
+          print(f"{parts[0]=}")
+          print(f"{parts[1]=}")
+
+
+          st.session_state.interview_done = True
 
         sources = re.findall(r'【\d+:\d+†source】', assistant_response)
 
         # print(f"{assistant_response=}")
         # print("Sources found in the response:", sources)
 
-        if assistant_response != "":
-            if assistant_response[-1] == "#":
+        if assistant_response != "" or st.session_state.interview_done:
+            if st.session_state.interview_done:
               st.session_state.interview = "END"
-              assistant_response = assistant_response[:-1]
 
             st.session_state.interviewer_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
             st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
@@ -235,7 +257,7 @@ def handle_user_input(user_input=None):
   if flag > 0:
     st.session_state.user_input = ""  
 
-if selected == "Home":
+if selected == "Chat":
   query = st.text_input(label="Enter your query:", key="user_input", on_change=handle_user_input, label_visibility="hidden", placeholder="Message Passage Assistant")
 
 def colored_box(text, color):
@@ -248,14 +270,14 @@ def colored_box(text, color):
     unsafe_allow_html=True
   )
 
-if selected == "Home":
+if selected == "Chat":
   if st.session_state.interview != "":
     if st.session_state.interview == "END":
-      st.session_state.interview = "The interview is over!"
+      st.session_state.interview = "The interview is over! You can view the assessment in the sidebar."
 
     # st.container().markdown("**" + st.session_state.interview + "**")
     st.container().markdown(f"""
-      <div style="background-color: #000000; padding: 5px; border-radius: 5px; text-align: center;">
+      <div style="background-color: #000000; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
           <p style="color: white; font-size: 20px; margin: 0;"> {st.session_state.interview}</p>
       </div>
       """, unsafe_allow_html=True)
@@ -285,3 +307,33 @@ if selected == "Home":
 
 if selected == "About":
   st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
+
+def create_radial_bar(score, label):
+    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(5, 5))
+    angles = np.linspace(0, 2 * np.pi, 100)
+    values = np.ones(100) * score / 100.0
+    ax.plot(angles, values, color='black', linewidth=3, linestyle='-')
+    ax.fill(angles, values, color='black', alpha=0.3)
+    ax.set_yticklabels([])
+    ax.set_xticks(np.linspace(0, 2 * np.pi, 5))
+    ax.set_xticklabels(['0', '25', '50', '75', '100'])
+    ax.set_title(f"{label.capitalize()}", size=15, color='black', y=1.1)
+    # Add score in the middle of the plot
+    ax.text(0, 0, f"{score}", ha='center', va='center', fontsize=20, color='black')
+    return fig
+
+if selected == "Assessment":
+  if st.session_state.interview_done:
+    s = st.session_state.score
+    start = s.find('{')
+    end = s.rfind('}')
+    s = s[start:end+1]
+    scores = json.loads(s)
+
+    for label, info in scores.items():
+      st.write(f"### {label.capitalize()}")
+      fig = create_radial_bar(info['score'], label)
+      st.pyplot(fig)
+      st.write(info['reason'])
+  else:
+    st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")
