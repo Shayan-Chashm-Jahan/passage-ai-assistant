@@ -308,7 +308,7 @@ if selected == "Chat":
 if selected == "About":
   st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
 
-def create_radial_bar(score, label):
+def create_radial_bar(score, label, color):
     fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(5, 5))
     
     # Create the angles for the plot
@@ -319,7 +319,7 @@ def create_radial_bar(score, label):
     values[:int(100 * score / 100)] = 1  # Only fill up to the score
 
     # Plot the radial bar
-    ax.fill(angles, values, color='blue', alpha=0.3)
+    ax.fill(angles, values, color=color, alpha=0.3)
     
     # Remove the radial ticks and labels
     ax.set_yticklabels([])
@@ -327,9 +327,13 @@ def create_radial_bar(score, label):
 
     # Add the title and score in the middle of the plot
     ax.set_title(f"{label.capitalize()}", size=15, color='black', y=1.1)
-    ax.text(0, 0, f"{score}", ha='center', va='center', fontsize=20, color='black')
+    ax.text(0, 0, f"{score}", ha='center', va='center', fontsize=20, color=color)
     
-    ax.spines['polar'].set_visible(False)
+    ax.spines['polar'].set_visible(True)
+    ax.spines['polar'].set_color(color)
+    ax.spines['polar'].set_linewidth(2)
+
+    ax.grid(False)
 
     return fig
 
@@ -342,8 +346,10 @@ if selected == "Assessment":
     s = s[start:end+1]
     scores = json.loads(s)
 
-    for label, info in scores.items():
-      fig = create_radial_bar(info['score'], label)
+    colors = ["red", "blue", "green", "orange"]
+
+    for color, (label, info) in zip(colors, scores.items()):
+      fig = create_radial_bar(info['score'], label, color)
       st.pyplot(fig)
       st.write(info['reason'])
   else:
