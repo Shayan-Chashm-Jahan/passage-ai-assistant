@@ -9,9 +9,8 @@ import load_funcs
 from datetime import datetime
 import re
 from streamlit_option_menu import option_menu
-import matplotlib.pyplot as plt
-
 from logs_notion import write_row
+import plotly.graph_objects as go
 
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
@@ -308,45 +307,48 @@ if selected == "Chat":
 if selected == "About":
   st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
 
-def score_to_color(score):
-    score = max(0, min(100, score))
-    cmap = LinearSegmentedColormap.from_list("score_cmap", ["darkred", "darkgreen"])
-    return cmap(score / 100.0)
 
-def create_radial_bar(score, label, color):
-    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(3, 3))
-    
-    # Create the angles for the plot
-    angles = np.linspace(np.pi / 2, 2.5 * np.pi, 100)
-    
-    # Create values for the plot
-    values = np.zeros(100)
-    values[100 - int(100 * score / 100):] = 1  # Only fill up to the score
+def get_color(score):
+    if score > 75:
+        return "#006400"  # DarkGreen
+    if score > 50:
+        return "#228B22"  # ForestGreen
+    if score > 25:
+        return "#FFD700"  # Gold
+    return "#B22222"  # Firebrick
 
-    # Plot the radial bar
-    ax.fill(angles, values, color=color, alpha=1)
+def create_gauge(score, label):
+    color = get_color(score)
 
-    # Plot the inner white circle
-    inner_angles = np.linspace(0, 2 * np.pi, 100)
-    inner_values = np.ones(100) * 0.9  # Inner circle radius
-    ax.fill(inner_angles, inner_values, color='white', alpha=1.0)
-    
-    # Remove the radial ticks and labels
-    ax.set_yticklabels([])
-    ax.set_xticks([])
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=score,
+        title={'text': label.capitalize()},
+        number={'font': {'color': "white"}}, 
+        gauge={
+            'axis': {'range': [0, 100], 'tickvals': []},
+            'bar': {'color': color},
+            'bordercolor': "white",
+            'borderwidth': 0,
+            'bgcolor': "white",
+            'steps': [
+                {'range': [0, 100], 'color': 'white'}
+            ],
+            'threshold': {
+                'line': {'color': color, 'width': 4},
+                'thickness': 0.7,
+                'value': score
+            },
+            'shape': 'angular'
+        }
+    ))
 
-    # Add the title and score in the middle of the plot
-    ax.set_title(f"{label.capitalize()}", size=15, color='black', y=1.1)
-    ax.text(0, 0, f"{score}", ha='center', va='center', fontsize=20, color=color)
-    
-    ax.spines['polar'].set_visible(True)
-    ax.spines['polar'].set_color(color)
-    ax.spines['polar'].set_linewidth(2)
-
-    ax.grid(False)
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0),
+        height=90,
+    )
 
     return fig
-
 
 if selected == "Assessment":
   if st.session_state.interview_done:
@@ -360,17 +362,23 @@ if selected == "Assessment":
 
     scores = json.loads(s)
 
-    colors = ["red", "blue", "green", "orange"]
-    col1, col2 = st.columns(2)
+    top_row = st.columns(1)
 
+    top_row[0].markdown("This is what our interviewer has told us. He also has several suggestions for you to increase your chances!")
+    top_row[0].markdown("---")
+
+    col1, col2 = st.columns((2, 2))
     columns = [col1, col2, col1, col2]
 
-    for color, (label, info), col in zip(colors, scores.items(), columns):
+    for (label, info), col in zip(scores.items(), columns):
       if info['score'] < 5:
-        info['score'] = 5
+          info['score'] = 5
 
-      fig = create_radial_bar(info['score'], label, score_to_color(info['score']))
-      col.pyplot(fig, use_container_width=True)
-      col.markdown(f"<div style='min-height: 60px;'>{info['reason']}</div>", unsafe_allow_html=True)
+      fig = create_gauge(info['score'], label)
+      col.plotly_chart(fig, use_container_width=True)
+      col.markdown(f"<div style='min-height: 150px;'>{info['reason']}</div>", unsafe_allow_html=True)
+
+      with col.expander("How to improve?"):
+          st.write(info['improvement'])
   else:
     st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")
