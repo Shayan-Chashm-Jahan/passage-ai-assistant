@@ -24,6 +24,8 @@ INTERVIEWER_API_KEY = st.secrets["INTERVIEWER_API_KEY"]
 interviewer_client = OpenAI(api_key=INTERVIEWER_API_KEY)
 interviewer_assistant = interviewer_client.beta.assistants.retrieve(st.secrets["INTERVIEWER_ID"])
 
+st.set_page_config(layout="wide")
+
 def cleaned_response(response):
   cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
   return cleaned_response
@@ -276,7 +278,7 @@ if selected == "Chat":
 
     # st.container().markdown("**" + st.session_state.interview + "**")
     st.container().markdown(f"""
-      <div style="background-color: #000000; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
+      <div style="background-color: #ff8a4b; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
           <p style="color: white; font-size: 20px; margin: 0;"> {st.session_state.interview}</p>
       </div>
       """, unsafe_allow_html=True)
