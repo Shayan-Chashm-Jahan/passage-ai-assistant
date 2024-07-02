@@ -29,7 +29,6 @@ def cleaned_response(response):
   cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
   return cleaned_response
 
-
 def initialize_conversation():
   if 'thread' not in st.session_state:
     st.session_state.thread = client.beta.threads.create()
@@ -371,7 +370,7 @@ if selected == "Assessment":
         info['score'] = 5
 
       fig = create_radial_bar(info['score'], label, score_to_color(info['score']))
-      col.pyplot(fig)
-      col.write(info['reason'])
+      col.pyplot(fig, use_container_width=True)
+      col.markdown(f"<div style='min-height: 60px;'>{info['reason']}</div>", unsafe_allow_html=True)
   else:
     st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")

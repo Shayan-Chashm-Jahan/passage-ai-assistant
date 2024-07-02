@@ -160,3 +160,7 @@ def generate_response(client, tools, conversation_history, document_embeddings, 
     except Exception as e:
         print(f"{str(e)}")
         return str(e)
+    
+def change_page(new_page):
+    st.session_state.selected_option = new_page
+    st.experimental_rerun()
