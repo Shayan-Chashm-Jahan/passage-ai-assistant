@@ -310,17 +310,29 @@ if selected == "About":
 
 def create_radial_bar(score, label):
     fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(5, 5))
+    
+    # Create the angles for the plot
     angles = np.linspace(0, 2 * np.pi, 100)
-    values = np.ones(100) * score / 100.0
-    ax.plot(angles, values, color='black', linewidth=3, linestyle='-')
-    ax.fill(angles, values, color='black', alpha=0.3)
+    
+    # Create values for the plot
+    values = np.zeros(100)
+    values[:int(100 * score / 100)] = 1  # Only fill up to the score
+
+    # Plot the radial bar
+    ax.fill(angles, values, color='blue', alpha=0.3)
+    
+    # Remove the radial ticks and labels
     ax.set_yticklabels([])
-    ax.set_xticks(np.linspace(0, 2 * np.pi, 5))
-    ax.set_xticklabels(['0', '25', '50', '75', '100'])
+    ax.set_xticks([])
+
+    # Add the title and score in the middle of the plot
     ax.set_title(f"{label.capitalize()}", size=15, color='black', y=1.1)
-    # Add score in the middle of the plot
     ax.text(0, 0, f"{score}", ha='center', va='center', fontsize=20, color='black')
+    
+    ax.spines['polar'].set_visible(False)
+
     return fig
+
 
 if selected == "Assessment":
   if st.session_state.interview_done:
@@ -331,7 +343,6 @@ if selected == "Assessment":
     scores = json.loads(s)
 
     for label, info in scores.items():
-      st.write(f"### {label.capitalize()}")
       fig = create_radial_bar(info['score'], label)
       st.pyplot(fig)
       st.write(info['reason'])
