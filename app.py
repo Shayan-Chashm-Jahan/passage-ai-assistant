@@ -334,7 +334,7 @@ if selected == "Assessment":
     top_row[0].markdown("---")
 
     col1, col2 = st.columns((2, 2))
-    columns = [col1, col2, col1, col2]
+    columns = [col1, col2, col1, col2, col1]
 
     for (label, info), col in zip(scores.items(), columns):
       if info['score'] < 5:
