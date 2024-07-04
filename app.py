@@ -1,16 +1,13 @@
 import json
 from threading import Thread
 import time
-from matplotlib.colors import LinearSegmentedColormap
-import numpy as np
 from openai import OpenAI
 import streamlit as st
-import load_funcs
-from datetime import datetime
 import re
 from streamlit_option_menu import option_menu
 from logs_notion import write_row
-import plotly.graph_objects as go
+from utils import cleaned_response, create_gauge
+import random
 
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
@@ -25,10 +22,6 @@ interviewer_client = OpenAI(api_key=INTERVIEWER_API_KEY)
 interviewer_assistant = interviewer_client.beta.assistants.retrieve(st.secrets["INTERVIEWER_ID"])
 
 st.set_page_config(layout="wide")
-
-def cleaned_response(response):
-  cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
-  return cleaned_response
 
 def initialize_conversation():
   if 'thread' not in st.session_state:
@@ -64,6 +57,18 @@ def initialize_conversation():
   if 'score' not in st.session_state:
     st.session_state.score = ""
 
+  if 'session_id' not in st.session_state:
+    # st.session_state.session_id = str(uuid.uuid4())
+    st.session_state.session_id = random.randint(1000, 10000)
+
+  if 'have_error' not in st.session_state:
+    st.session_state.have_error = False
+
+  if 'gbc_logo' not in st.session_state:
+    with open("./img/George_Brown_College_logo.svg", "r") as svg_file:
+      st.session_state.gbc_logo = svg_file.read()
+
+
   initial_messages = ["What are the benefits of studying at George Brown College?", "What are the admission requirements for international students?", "What support services are available for students at George Brown College?"]
 
   st.session_state.follow_ups = initial_messages
@@ -78,7 +83,7 @@ with st.sidebar:
         menu_icon="cast", default_index=1
     )
 
-if selected == "Chat":
+if selected == "Chat" and st.session_state.have_error == False:
   history_text = ""
   for message in st.session_state.get('showing_conversation_history', []):
     if message['role'] == 'assistant':
@@ -94,53 +99,55 @@ if selected == "Chat":
   res_box = st.empty()
 
 def generate_response_func(user_input):
-  if st.session_state.interview == "":
-    while True:
-      st.session_state.all_user_messages += user_input + "\n\n"
+  try:
+    if st.session_state.interview == "":
+      for step in range(3):
+        st.session_state.all_user_messages += user_input + "\n\n"
 
-      stream = client.beta.threads.create_and_run(
-        assistant_id=assistant.id,
-        thread={
-          "messages": st.session_state.conversation_history
-        },
-        stream=True
-      )
+        stream = client.beta.threads.create_and_run(
+          assistant_id=assistant.id,
+          thread={
+            "messages": st.session_state.conversation_history
+          },
+          stream=True,
+          timeout=5,
+        )
 
-      time.sleep(1)
+        time.sleep(1)
 
-      report = []
+        report = []
 
-      for event in stream:
-          if event.data.object == "thread.message.delta":
-            for content in event.data.delta.content:
-                if content.type == 'text':
-                  report.append(content.text.value)
-                  assistant_response = "".join(report).strip()
-                  if assistant_response != "" and assistant_response[0] != '&':
-                    res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
+        for event in stream:
+            if event.data.object == "thread.message.delta":
+              for content in event.data.delta.content:
+                  if content.type == 'text':
+                    report.append(content.text.value)
+                    assistant_response = "".join(report).strip()
+                    if assistant_response != "" and assistant_response[0] != '&':
+                      res_box.markdown(f"You: {user_input}\n\nAssistant: {cleaned_response(assistant_response)}")
 
-      assistant_response = "".join(report).strip()
+        assistant_response = "".join(report).strip()
 
-      if assistant_response == "&&":
-        st.session_state.interview = "You entered the interview mode"
-        break
-
-      else:
-        sources = re.findall(r'【\d+:\d+†source】', assistant_response)
-
-        # print(f"{assistant_response=}")
-        # print("Sources found in the response:", sources)
-
-        if assistant_response != "":
-          st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
-          st.session_state.showing_conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+        if assistant_response == "&&":
+          st.session_state.interview = "You entered the interview mode"
           break
 
-  if st.session_state.interview != "":
-     while True:
+        else:
+          sources = re.findall(r'【\d+:\d+†source】', assistant_response)
+
+          # print(f"{assistant_response=}")
+          # print("Sources found in the response:", sources)
+
+          if assistant_response != "":
+            st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+            st.session_state.showing_conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+            break
+
+    if st.session_state.interview != "":
+      for step in range(3):
         if st.session_state.all_user_messages != "":
           if len(st.session_state.all_user_messages) > 10000:
-             st.session_state.all_user_messages = st.session_state.all_user_messages[-10000:]
+              st.session_state.all_user_messages = st.session_state.all_user_messages[-10000:]
 
           st.session_state.interviewer_messages.append({"role": "user", "content": st.session_state.all_user_messages})
 
@@ -154,7 +161,8 @@ def generate_response_func(user_input):
         thread={
           "messages": st.session_state.interviewer_messages
         },
-        stream=True
+        stream=True,
+        timeout=5
       )
         
         time.sleep(1)
@@ -177,6 +185,8 @@ def generate_response_func(user_input):
         assistant_response = "".join(report).strip()
 
         if "$$$" in assistant_response:
+          write_row(st.session_state.session_id, "-", "-", parts[1])
+
           parts = re.split(r'\$\$\$', assistant_response)
           assistant_response = parts[0]
           st.session_state.score = parts[1]
@@ -184,7 +194,6 @@ def generate_response_func(user_input):
           print(f"{len(parts)=}")
           print(f"{parts[0]=}")
           print(f"{parts[1]=}")
-
 
           st.session_state.interview_done = True
 
@@ -202,6 +211,13 @@ def generate_response_func(user_input):
             st.session_state.showing_conversation_history.append({"role": "interviewer", "content": cleaned_response(assistant_response)})
             
             break
+        
+        if step == 2:
+          raise Exception("timeout")
+  except Exception as e:
+    st.session_state.have_error = True
+    st.error("Open AI is not responding. Please try again later.")
+    print(f"{e} - {st.session_state.have_error}")
 
 def suggest_prompt_func(user_input):
   second_client.beta.threads.messages.create(
@@ -253,25 +269,14 @@ def handle_user_input(user_input=None):
 
       st.session_state.feedback_flag = True
 
-      write_row("title", st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
+      write_row(st.session_state.session_id, st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 
   if flag > 0:
     st.session_state.user_input = ""  
 
-if selected == "Chat":
+if selected == "Chat" and st.session_state.have_error == False:
   query = st.text_input(label="Enter your query:", key="user_input", on_change=handle_user_input, label_visibility="hidden", placeholder="Message Passage Assistant")
 
-def colored_box(text, color):
-  return st.container().markdown(
-    f"""
-    <div style="background-color: {color}; padding: 10px; border-radius: 5px;">
-        <p style="color: white;">{text}</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-  )
-
-if selected == "Chat":
   if st.session_state.interview != "":
     if st.session_state.interview == "END":
       st.session_state.interview = "The interview is over! You can view the assessment in the sidebar."
@@ -282,8 +287,7 @@ if selected == "Chat":
           <p style="color: white; font-size: 20px; margin: 0;"> {st.session_state.interview}</p>
       </div>
       """, unsafe_allow_html=True)
-    # colored_box("**" + st.session_state.interview + "**", "#FFFFFF")
-
+    
     if st.session_state.interview == "The interview is over!":
       st.session_state.interview = ""
     else:
@@ -303,55 +307,15 @@ if selected == "Chat":
     for feedback in feedbacks:
       if st.button(feedback):
           st.session_state.feedback_flag = False
-          write_row("title", st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), feedback)
+          write_row(st.session_state.session_id, st.session_state.showing_conversation_history[-2]['content'], st.session_state.showing_conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), feedback)
           st.rerun()
 
 if selected == "About":
+  st.container().markdown(f"""
+    <div style="text-align: center;">
+      {st.session_state.gbc_logo}
+  """, unsafe_allow_html=True)
   st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
-
-
-def get_color(score):
-    if score > 75:
-        return "#006400"  # DarkGreen
-    if score > 50:
-        return "#228B22"  # ForestGreen
-    if score > 25:
-        return "#FFD700"  # Gold
-    return "#B22222"  # Firebrick
-
-def create_gauge(score, label):
-    color = get_color(score)
-
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=score,
-        title={'text': label.capitalize()},
-        number={'font': {'color': "white"}}, 
-        gauge={
-            'axis': {'range': [0, 100], 'tickvals': []},
-            'bar': {'color': color},
-            'bordercolor': "white",
-            'borderwidth': 0,
-            'bgcolor': "white",
-            'steps': [
-                {'range': [0, 100], 'color': 'white'}
-            ],
-            'threshold': {
-                'line': {'color': color, 'width': 4},
-                'thickness': 0.7,
-                'value': score
-            },
-            'shape': 'angular'
-        }
-    ))
-
-    fig.update_layout(
-        margin=dict(t=0, b=0, l=0, r=0),
-        height=90,
-    )
-
-    return fig
-
 if selected == "Assessment":
   if st.session_state.interview_done:
     s = st.session_state.score
@@ -384,3 +348,11 @@ if selected == "Assessment":
           st.write(info['improvement'])
   else:
     st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")
+    if st.button("interview"):
+      selected = "Chat"
+
+print(st.session_state.have_error)
+
+if st.session_state.have_error:
+  st.container().markdown("Unfortunately, OpenAI is not responding. Please try again later.")
+  print("In...")
