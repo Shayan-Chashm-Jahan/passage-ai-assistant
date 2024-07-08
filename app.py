@@ -34,6 +34,9 @@ def initialize_conversation():
 	if 'second_thread' not in st.session_state:
 		st.session_state.second_thread = second_client.beta.threads.create()
 
+	if 'evaluator_thread' not in st.session_state:
+		st.session_state.evaluator_thread = evaluator_client.beta.threads.create()
+
 	if 'conversation_history' not in st.session_state:
 		st.session_state.conversation_history = []
 
@@ -54,6 +57,9 @@ def initialize_conversation():
 
 	if 'score' not in st.session_state:
 		st.session_state.score = ""
+
+	if 'program_suggestion' not in st.session_state:
+		st.session_state.program_suggestion = ""
 
 	if 'session_id' not in st.session_state:
 		# st.session_state.session_id = str(uuid.uuid4())
@@ -98,19 +104,23 @@ def streamed_response_generator(stream):
 	st.session_state.assistant_response = "".join(report)
 
 def get_evaluation(interview_messages):
-	stream = evaluator_client.beta.threads.create_and_run(
-		assistant_id=evaluator_assistant.id,
-		thread={
-			"messages":[{"role": "user", "content": "\n".join(f"{interview_messages["role"]}: {interview_messages["content"]}")}]
-		},
-		stream=True,
-		timeout=5,
+	evaluator_client.beta.threads.messages.create(
+		 thread_id = st.session_state.evaluator_thread.id,
+		 role="user",
+		 content="\n".join(interview_message["content"] for interview_message in interview_messages)
 	)
 
-	streamed_response_generator(stream)
+	with evaluator_client.beta.threads.runs.stream(
+		thread_id=st.session_state.evaluator_thread.id,
+		assistant_id=evaluator_assistant.id,
+	) as stream:
+		stream.until_done()
 
-	s = st.session_state.assistant_response
-	print(f"{s=}")
+	messages = evaluator_client.beta.threads.messages.list(thread_id=st.session_state.evaluator_thread.id)
+
+	new_message = messages.data[0].content[0].text.value
+
+	s = new_message
 	s = re.sub(r'[“”]', '"', s)
 	start = s.find('{')
 	end = s.rfind('}')
@@ -155,13 +165,21 @@ def generate_response_func(user_input):
 					st.write_stream(streamed_response_generator(stream))
 				
 				assistant_response = st.session_state.assistant_response
+				print(f"{assistant_response=}")
 
 				if "$$$" in assistant_response:
+					print(f"{assistant_response=}")
 					parts = re.split(r'\$\$\$', assistant_response)
 					assistant_response = parts[0]
+					st.session_state.program_suggestion = assistant_response
 
 					get_evaluation(st.session_state.interview_messages)
 					st.session_state.interview_mode = 3
+
+					if assistant_response != "":
+						st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+
+					st.rerun()
 
 				if assistant_response != "":
 					st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
@@ -223,23 +241,38 @@ def handle_user_input(user_input=None):
 				write_row(st.session_state.session_id, st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 			else:
 				# TODO
+				# write_row(st.session_state.session_id, st.session_state.interview_messages[-2]['content'], st.session_state.interview_messages[-1]['content'], '-')
 				pass
 
 	if flag > 0:
 		st.session_state.user_input = ""  
 
-if st.session_state.interview_mode % 2 == 0:
+if st.session_state.interview_mode == 0:
 	with st.sidebar:
 		selected = option_menu(
-				"Main Menu", ["About", "Chat", "Interview", "Assessment"],
-				icons=['info', 'chat', 'person-lines-fill', 'clipboard-check'],
+				"Main Menu", ["About", "Chat", "Interview"],
+				icons=['info', 'chat', 'person-lines-fill'],
+				menu_icon="cast", default_index=1
+		)
+elif st.session_state.interview_mode == 1:
+	with st.sidebar:
+		selected = option_menu(
+				"Main Menu", ["About", "Chat", "Interview"],
+				icons=['info', 'chat', 'person-lines-fill'],
+				menu_icon="cast", default_index=2
+		)
+elif st.session_state.interview_mode == 2:
+	with st.sidebar:
+		selected = option_menu(
+				"Main Menu", ["About", "Chat", "Assessment"],
+				icons=['info', 'chat', 'clipboard-check'],
 				menu_icon="cast", default_index=1
 		)
 else:
 	with st.sidebar:
 		selected = option_menu(
-				"Main Menu", ["About", "Chat", "Interview", "Assessment"],
-				icons=['info', 'chat', 'person-lines-fill', 'clipboard-check'],
+				"Main Menu", ["About", "Chat", "Assessment"],
+				icons=['info', 'chat', 'clipboard-check'],
 				menu_icon="cast", default_index=2
 		)
 
@@ -318,33 +351,35 @@ if selected == "About":
 	""", unsafe_allow_html=True)
 	st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
 if selected == "Assessment":
-	if st.session_state.interview_mode >= 2:
-		s = st.session_state.score
+	st.session_state.interview_mode = 3
 
-		print(f"{s=}")
+	st.write(st.session_state.program_suggestion)
 
-		scores = json.loads(s)
+	s = st.session_state.score
 
-		top_row = st.columns(1)
+	print(f"{s=}")
 
-		top_row[0].markdown("This is what our interviewer has told us. He also has several suggestions for you to increase your chances!")
-		top_row[0].markdown("---")
+	scores = json.loads(s)
 
-		col1, col2 = st.columns((2, 2))
-		columns = [col1, col2, col1, col2, col1]
+	top_row = st.columns(1)
+	
+	top_row[0].markdown("---")
 
-		for (label, info), col in zip(scores.items(), columns):
-			if info['score'] < 5:
-					info['score'] = 5
+	col1, col2 = st.columns((2, 2))
+	columns = [col1, col2, col1, col2, col1]
 
-			fig = create_gauge(info['score'], label)
-			col.plotly_chart(fig, use_container_width=True)
-			col.markdown(f"<div style='min-height: 150px;'>{info['reason']}</div>", unsafe_allow_html=True)
+	for (label, info), col in zip(scores.items(), columns):
+		print(f"{label=} --- {info=}")
 
-			with col.expander("How to improve?"):
-					st.write(info['improvement'])
-	else:
-		st.container().markdown("The assessment will be available here once you do the interview.\n\nYou just need to tell the assistant that you want to be interviewed.")
+		if info['score'] < 5:
+				info['score'] = 5
+
+		fig = create_gauge(info['score'], label)
+		col.plotly_chart(fig, use_container_width=True)
+		col.markdown(f"<div style='min-height: 150px;'>{info['reason']}</div>", unsafe_allow_html=True)
+
+		with col.expander("How to improve?"):
+				st.write(info['improvement'])
 
 if st.session_state.have_error != "":
 	st.container().markdown(st.session_state.have_error)
