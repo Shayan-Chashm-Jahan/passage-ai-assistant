@@ -25,7 +25,11 @@ EVALUATOR_API_KEY = st.secrets["EVALUATOR_API_KEY"]
 evaluator_client = OpenAI(api_key=EVALUATOR_API_KEY)
 evaluator_assistant = evaluator_client.beta.assistants.retrieve(st.secrets["EVALUATOR_ID"])
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+	layout="wide",
+    page_title="GBC AI Assistant",
+    page_icon="./img/page-icon.png" 
+)
 
 def initialize_conversation():
 	if 'chat_thread' not in st.session_state:
@@ -362,7 +366,7 @@ if selected == "Assessment":
 	scores = json.loads(s)
 
 	top_row = st.columns(1)
-	
+
 	top_row[0].markdown("---")
 
 	col1, col2 = st.columns((2, 2))
