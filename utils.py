@@ -7,8 +7,9 @@ import plotly.graph_objects as go
 ### --- Visuals --- ###
 
 def cleaned_response(response):
-    cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
-    return cleaned_response
+    # cleaned_response = re.sub(r'【\d+:\d+†source】', '', response)
+    # return cleaned_response
+    return response
 
 def get_color(score):
     if score > 75:

@@ -1,0 +1,75 @@
+User: hi
+
+Assistant: Hello! I'm here to help you find a suitable program at George Brown College. This interview will take approximately 10 minutes. I'll ask you a series of questions to gather the necessary information. Are you ready to begin?
+
+User: yes
+
+Assistant: Great! Let's start with your background. Could you please tell me about your previous achievements, experience, and relevant skills?
+
+User: I have a bsc in CS. I am an ICPC world finalist.
+
+Assistant: That's impressive! Let's delve deeper into your field of interest. Since you have a background in Computer Science and are an ICPC world finalist, I'll ask you a few professional questions to gauge your knowledge and skills.
+First question: Can you explain the concept of dynamic programming and provide an example of a problem that can be solved using this technique?
+
+User: Yes, dynamic programming is about defining so many subproblems such that the final one of it is the original problem. The answers of this subproblems can be calculated by the answer of the other subproblems. For example, in fibonacci sequence, we can define dp[i] as the i-th fibonacci number, then we have dp[0] = 0, dp[1] = 1, and dp[i] = dp[i - 1] + dp[i - 2] for i >= 2.
+
+Assistant: Excellent explanation! Let's move on to the next question.
+Can you describe the difference between depth-first search (DFS) and breadth-first search (BFS) in graph traversal?
+
+User: Yes. In BFS, you visit the verices layer by layer. It means you have a queue and each time add the adjacent vertices of the current vertex to a queue. This way, you visit vertices in order of their distance from the source. However, in DFS, from each vertex, you will call a function for its outgoing edges, you visit all the vertices that this vertex has a path to, and then you will come back from this vertex to its parent.
+
+Assistant: Great! Your understanding of these concepts is clear. Here's the final professional question:
+Can you explain what a hash table is and how it works?
+
+User: A hash table is a table where you store each object in a cell that has some specific number. You will assign a number to each object that is going to be calculated by some formula. Then, you can easily check the existence of some object by checking its specific cell.
+
+Assistant: Thank you for your detailed responses. Now, let's move on to assessing your English proficiency.
+Have you taken the TOEFL or IELTS exam?
+
+User: No.
+
+Assistant: Let's proceed to discuss your soft skills.
+Can you tell me about any projects you have done in teams and how those projects went?
+
+User: I have done many research projects in teams and they were great for me.
+
+Assistant: That's good to hear. Could you also tell me about your hobbies, social life, and if you like sports, movies, art, etc.?
+
+User: I like vacation. I visit neighbor states, I go out with my friends. I play poker with my friends. And I engage in social events.
+
+Assistant: Thank you for sharing that. Now, let's discuss your willingness to relocate.
+Are you willing to relocate to Canada for your studies?
+
+User: I am willing to relocate to Canada.
+
+Assistant 
+Do you already have permission to come to Canada, such as a Canadian passport, PR, or visa? If not, do you have a valid passport, and which country is it from?
+
+User
+I have a valid American passport.
+
+Assistant 
+Thank you for the information. Now, let's discuss your financial situation.
+Do you already have a credit card?
+
+User
+I do not have a credit card
+
+Assistant
+Understood. May I ask about your current job and the financial situation of your family? Do you have any financial debts?
+
+User
+I have a well-paid job and I don't have any financial debts.
+
+Assistant
+Thank you for providing all the necessary information. Based on our discussion, I recommend the following programs at George Brown College that align with your background in Computer Science and your interest in advanced technical fields:
+- 		Applied A.I. Solutions Development Program (Postgraduate)
+    - 		This program focuses on developing solutions using artificial intelligence, which could be a great fit given your strong problem-solving skills demonstrated in ICPC.
+    - 		Program Link
+- 		Cyber Security Program (Postgraduate)
+    -		This program offers advanced training in cybersecurity, which is a critical and growing field within computer science.
+    - 		Program Link
+- 		Cloud Computing Technologies Program (Postgraduate)
+    - 		This program provides comprehensive knowledge in cloud computing, which is highly relevant in today's tech industry.
+    - 		Program Link
+I believe these programs will suit your academic background and professional aspirations well. $$$

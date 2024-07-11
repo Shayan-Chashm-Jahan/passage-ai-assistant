@@ -21,9 +21,17 @@ INTERVIEWER_API_KEY = st.secrets["INTERVIEWER_API_KEY"]
 interviewer_client = OpenAI(api_key=INTERVIEWER_API_KEY)
 interviewer_assistant = interviewer_client.beta.assistants.retrieve(st.secrets["INTERVIEWER_ID"])
 
+PROGRAM_SUGGESTER_API_KEY = st.secrets["PROGRAM_SUGGESTER_API_KEY"]
+program_suggester_client = OpenAI(api_key=PROGRAM_SUGGESTER_API_KEY)
+program_suggester_assistant = program_suggester_client.beta.assistants.retrieve(st.secrets["PROGRAM_SUGGESTER_ID"])
+
 EVALUATOR_API_KEY = st.secrets["EVALUATOR_API_KEY"]
 evaluator_client = OpenAI(api_key=EVALUATOR_API_KEY)
 evaluator_assistant = evaluator_client.beta.assistants.retrieve(st.secrets["EVALUATOR_ID"])
+
+ENGLISH_EVAL_API_KEY = st.secrets["ENGLISH_EVAL_API_KEY"]
+english_evaluator_client = OpenAI(api_key=ENGLISH_EVAL_API_KEY)
+english_evaluator_assistant = english_evaluator_client.beta.assistants.retrieve(st.secrets["ENGLISH_EVAL_ID"])
 
 st.set_page_config(
 	layout="wide",
@@ -40,6 +48,12 @@ def initialize_conversation():
 
 	if 'evaluator_thread' not in st.session_state:
 		st.session_state.evaluator_thread = evaluator_client.beta.threads.create()
+
+	if 'english_evaluator_thread' not in st.session_state:
+		st.session_state.english_evaluator_thread = english_evaluator_client.beta.threads.create()
+
+	if 'program_suggester_thread' not in st.session_state:
+		st.session_state.program_suggester_thread = program_suggester_client.beta.threads.create()
 
 	if 'conversation_history' not in st.session_state:
 		st.session_state.conversation_history = []
@@ -60,7 +74,7 @@ def initialize_conversation():
 		st.session_state.interview_messages = []
 
 	if 'score' not in st.session_state:
-		st.session_state.score = ""
+		st.session_state.score = {}
 
 	if 'program_suggestion' not in st.session_state:
 		st.session_state.program_suggestion = ""
@@ -107,11 +121,29 @@ def streamed_response_generator(stream):
 
 	st.session_state.assistant_response = "".join(report)
 
+def get_program(interview_messages):
+	program_suggester_client.beta.threads.messages.create(
+		 thread_id = st.session_state.program_suggester_thread.id,
+		 role="user",
+		 content=interview_messages
+	)
+
+	with program_suggester_client.beta.threads.runs.stream(
+		thread_id=st.session_state.program_suggester_thread.id,
+		assistant_id=program_suggester_assistant.id,
+	) as stream:
+		stream.until_done()
+
+	messages = program_suggester_client.beta.threads.messages.list(thread_id=st.session_state.program_suggester_thread.id)
+
+	st.session_state.program_suggestion = messages.data[0].content[0].text.value
+
+
 def get_evaluation(interview_messages):
 	evaluator_client.beta.threads.messages.create(
 		 thread_id = st.session_state.evaluator_thread.id,
 		 role="user",
-		 content="\n".join(interview_message["content"] for interview_message in interview_messages)
+		 content=interview_messages
 	)
 
 	with evaluator_client.beta.threads.runs.stream(
@@ -129,7 +161,36 @@ def get_evaluation(interview_messages):
 	start = s.find('{')
 	end = s.rfind('}')
 	s = s[start:end+1]
-	st.session_state.score = s
+
+	english_evaluator_client.beta.threads.messages.create(
+		 thread_id = st.session_state.english_evaluator_thread.id,
+		 role="user",
+		 content="\n".join(f"{interview_message["role"]}: {interview_message["content"]}" for interview_message in interview_messages)
+	)
+
+	with english_evaluator_client.beta.threads.runs.stream(
+		thread_id=st.session_state.english_evaluator_thread.id,
+		assistant_id=english_evaluator_assistant.id,
+	) as stream:
+		stream.until_done()
+
+	messages = english_evaluator_client.beta.threads.messages.list(thread_id=st.session_state.english_evaluator_thread.id)
+
+	new_message = messages.data[0].content[0].text.value
+
+	t = new_message
+	t = re.sub(r'[“”]', '"', t)
+	start = t.find('{')
+	end = t.rfind('}')
+	t = t[start:end+1]
+
+	sd = json.loads(s)
+	td = json.loads(t)
+
+	sd["english"] = td["english"]
+
+	st.session_state.score = sd	
+
 
 def generate_response_func(user_input):
 	try:
@@ -140,7 +201,7 @@ def generate_response_func(user_input):
 						"messages": st.session_state.conversation_history
 					},
 					stream=True,
-					timeout=5,
+					timeout=60,
 				)
 
 				with st.chat_message("assistant"):
@@ -163,7 +224,7 @@ def generate_response_func(user_input):
 					"messages": st.session_state.interview_messages
 				},
 				stream=True,
-				timeout=5
+				timeout=60
 			)
 				with st.chat_message("assistant"):
 					st.write_stream(streamed_response_generator(stream))
@@ -171,17 +232,19 @@ def generate_response_func(user_input):
 				assistant_response = st.session_state.assistant_response
 				print(f"{assistant_response=}")
 
-				if "$$$" in assistant_response:
-					print(f"{assistant_response=}")
-					parts = re.split(r'\$\$\$', assistant_response)
-					assistant_response = parts[0]
-					st.session_state.program_suggestion = assistant_response
-
-					get_evaluation(st.session_state.interview_messages)
-					st.session_state.interview_mode = 3
+				if "END" in assistant_response:
+					s = assistant_response
+					start = s.find('[')
+					end = s.rfind(']')
+					s = s[start:end+1]
+					assistant_response = s
 
 					if assistant_response != "":
 						st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+
+					get_program(assistant_response)
+					get_evaluation(assistant_response)
+					st.session_state.interview_mode = 3
 
 					st.rerun()
 
@@ -228,16 +291,20 @@ def handle_user_input(user_input=None):
 			else:
 				st.session_state.interview_messages.append({"role": "user", "content": user_input})
 	
-			threads = [Thread(target=generate_response_func(user_input))]
+			# threads = [Thread(target=generate_response_func(user_input))]
 
+			# if st.session_state.interview_mode % 2 == 0:
+			# 	threads.append(Thread(target=suggest_prompt_func(user_input)))
+
+			# for t in threads:
+			# 	t.start()
+
+			# for t in threads:
+			# 	t.join()
+
+			generate_response_func(user_input)
 			if st.session_state.interview_mode % 2 == 0:
-				threads.append(Thread(target=suggest_prompt_func(user_input)))
-
-			for t in threads:
-				t.start()
-
-			for t in threads:
-				t.join()
+				suggest_prompt_func(user_input)
 
 			st.session_state.feedback_flag = True
 
@@ -283,6 +350,7 @@ else:
 if selected == "Chat" and st.session_state.have_error == "":
 	if st.session_state.interview_mode % 2:
 		st.session_state.interview_mode -= 1
+		st.rerun()
 
 	# container_css = """
 	# <style>
@@ -355,15 +423,15 @@ if selected == "About":
 	""", unsafe_allow_html=True)
 	st.container().markdown("This is George Brown College AI assistant. \n\n You can ask any questions regarding the programs and visa requirements. \n\nYou may also be interviewed by the interviewer. You just need to tell the assistant that you want to be interviewed.")
 if selected == "Assessment":
-	st.session_state.interview_mode = 3
+	if st.session_state.interview_mode != 3:
+		st.session_state.interview_mode = 3
+		st.rerun()
 
 	st.write(st.session_state.program_suggestion)
 
-	s = st.session_state.score
+	scores = st.session_state.score
 
-	print(f"{s=}")
-
-	scores = json.loads(s)
+	print(f"{scores=}")
 
 	top_row = st.columns(1)
 
@@ -383,7 +451,12 @@ if selected == "Assessment":
 		col.markdown(f"<div style='min-height: 150px;'>{info['reason']}</div>", unsafe_allow_html=True)
 
 		with col.expander("How to improve?"):
-				st.write(info['improvement'])
+			if label == "english":
+				improve_message = info['improvements']
+				improve_message = "\n\n".join(improve_message)
+			else:
+				improve_message = info['improvement']
+			st.write(improve_message)
 
 if st.session_state.have_error != "":
 	st.container().markdown(st.session_state.have_error)

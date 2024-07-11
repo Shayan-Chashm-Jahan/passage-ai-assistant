@@ -1,0 +1,186 @@
+You will be given a python list of all the chats between a user and an interviewer assistant. You have to suggest at least one and at most three programs that is most suitable for that person.
+
+In the description, you must also say that how much it is suitable for the user and why you suggested that.
+
+### List of Programs:
+
+- **Advanced Manufacturing Program (Postgraduate)**
+  - Code: T414
+  - Link: https://www.georgebrown.ca/programs/advanced-manufacturing-program-postgraduate-t414
+
+- **Applied A.I. Solutions Development Program (Postgraduate)**
+  - Code: T431
+  - Link: https://www.georgebrown.ca/programs/applied-ai-solutions-development-program-postgraduate-t431
+
+- **Behavioural Science Technician**
+  - Code: C146
+  - Link: https://www.georgebrown.ca/programs/behavioural-science-technician-program-c146
+
+- **Blockchain Development Program (Postgraduate)**
+  - Code: T475
+  - Link: https://www.georgebrown.ca/programs/blockchain-development-program-t475
+
+- **Carpentry and Renovation Technician**
+  - Code: T180
+  - Link: https://www.georgebrown.ca/programs/carpentry-and-renovation-technician-program-t180
+
+- **Cloud Computing Technologies Program (Postgraduate)**
+  - Code: T465
+  - Link: https://www.georgebrown.ca/programs/cloud-computing-technologies-program-postgraduate-t465
+
+- **Computer Systems Technician**
+  - Code: T141
+  - Link: https://www.georgebrown.ca/programs/computer-systems-technician-program-t141
+
+- **Construction Engineering Technician**
+  - Code: T161
+  - Link: https://www.georgebrown.ca/programs/construction-engineering-technician-program-t161
+
+- **Cyber Security Program (Postgraduate)**
+  - Code: T433
+  - Link: https://www.georgebrown.ca/programs/cyber-security-program-postgraduate-t433
+
+- **Dental Office Administration**
+  - Code: S115
+  - Link: https://www.georgebrown.ca/programs/dental-office-administration-program-s115
+
+- **Early Childhood Education Program**
+  - Code: C100
+  - Link: https://www.georgebrown.ca/programs/early-childhood-education-program-c100
+
+- **Electrical Techniques Program**
+  - Code: T167
+  - Link: https://www.georgebrown.ca/programs/electrical-techniques-program-t167
+
+- **Electromechanical Engineering Technician**
+  - Code: T146
+  - Link: https://www.georgebrown.ca/programs/electromechanical-engineering-technician-program-t146
+
+- **Food and Beverage Management – Restaurant Management**
+  - Code: H132
+  - Link: https://www.georgebrown.ca/programs/food-and-beverage-management-restaurant-management-program-h132
+
+- **Food Tourism Entrepreneurship**
+  - Code: H417
+  - Link: https://www.georgebrown.ca/programs/food-tourism-entrepreneurship-program-postgraduate-h417
+
+- **Health Information Management**
+  - Code: C139
+  - Link: https://www.georgebrown.ca/programs/health-information-management-program-c139
+
+- **Heating, Refrigeration, and Air Conditioning Technician**
+  - Code: T160
+  - Link: https://www.georgebrown.ca/programs/heating-refrigeration-and-air-conditioning-technician-program-t160
+
+- **Hospitality Services Program**
+  - Code: H101
+  - Link: https://www.georgebrown.ca/programs/hospitality-services-program-h101
+
+- **Hospitality – Hotel Operations Management Program**
+  - Code: H133
+  - Link: https://www.georgebrown.ca/programs/hospitality-hotel-operations-management-program-h133
+
+- **Information Systems Business Analysis Program (With Experiential Learning Capstone) (Postgraduate)**
+  - Code: T405
+  - Link: https://www.georgebrown.ca/programs/information-systems-business-analysis-program-with-experiential-learning-capstone-postgraduate-t405
+
+- **Interactive Media Management Program (Postgraduate)**
+  - Code: G412
+  - Link: https://www.georgebrown.ca/programs/interactive-media-management-program-postgraduate-g412
+
+- **Mechanical Technician – CNC and Precision Machining**
+  - Code: T173
+  - Link: https://www.georgebrown.ca/programs/mechanical-technician-cnc-and-precision-machining-program-t173
+
+- **Mobile Application Development and Strategy Program (Postgraduate)**
+  - Code: T440
+  - Link: https://www.georgebrown.ca/programs/mobile-application-development-and-strategy-program-postgraduate-t440
+
+- **Office Administration – Health Services**
+  - Code: S135
+  - Link: https://www.georgebrown.ca/programs/office-administration-health-services-program-s135
+
+- **Personal Support Worker Program (PSW)**
+  - Code: C112
+  - Link: https://www.georgebrown.ca/programs/personal-support-worker-program-psw-c112
+
+- **Practical Nursing Program (PN)**
+  - Code: S121
+  - Link: https://www.georgebrown.ca/programs/practical-nursing-program-pn-s121
+
+- **Tourism and Hospitality Management**
+  - Code: H130
+  - Link: https://www.georgebrown.ca/programs/tourism-and-hospitality-management-program-h130
+
+- **Welding Techniques Program**
+  - Code: T166
+  - Link: https://www.georgebrown.ca/programs/welding-techniques-program-t166
+
+- **Wireless Networking Program (Postgraduate)**
+  - Code: T411
+  - Link: https://www.georgebrown.ca/programs/wireless-networking-program-postgraduate-t411
+
+
+
+### Examples
+
+#### Case 1
+
+**Input**:
+
+[ "assistant: Hello! I am conducting an interview to gather some information about you. Could you please tell me your field of education and its level?", "user: I have a BSc in computer engineering", "assistant: That's great to hear! Do you plan on continuing your education in the same field of Computer Engineering, or do you wish to pursue another field of interest?", "user: I want to pursue physics", "assistant: Interesting! As you have major in Computer Engineering and now want to pursue Physics, I would like to understand your knowledge level in both areas. Let's start with Computer Engineering. Here is the first question: Can you explain what is the principle of 'Divide and Conquer' in Computer Algorithms?", "user: Yes, it is about dividing the problem into two or more parts, solve them, and use the solution to find the final answer of the problem. For example, in order to calculate a^b, I can divide it and find out a^(b / 2) and use that value to calculate a^b.", "assistant: Great explanation! Now, for the second question related to Computer Engineering: Can you explain how a computer uses its Memory Hierarchy effectively to optimize performance?", "user: Yes, for example it uses caching.", "assistant: Good. Now, let's move on to your field of interest, Physics. Here is the question: Can you succinctly explain the concept of quantum entanglement?", "user: I can't", "assistant: No problem. Quantum entanglement can be a complex topic to explain. Let's now move on to understand your English proficiency. Have you ever studied full-time in an English-speaking country?", "user: No", "assistant: Alright, since you haven't studied in an English-speaking country, have you taken language proficiency tests like TOEFL or IELTS? If so, could you please share your scores?", "user: I have TOEFL score of 102", "assistant: Your score is impressive! Your TOEFL score indicates that you have good English proficiency. Now, let's get to know you a bit more. How old are you?", "user: I am 24.", "assistant: Thank you for sharing. Now, could you please tell me what are some activities you enjoy doing during your leisure time?", "user: I like watching movies and playing football", "assistant: Those are fun activities! Are you more of an early bird or a night owl?", "user: It depends. I can be both in different times.", "assistant: Flexibility is good. Now, when it comes to working on projects, do you usually prefer to finish them well before the deadline or do you work closer to the deadline?", "user: I usually do them close to deadline", "assistant: Everyone has their own style, that's completely okay. When studying, do you prefer attending university classes or do you prefer learning the material later by yourself?", "user: Later by myself", "assistant: It seems you're comfortable with independent learning. That's a significant trait. Now, I'd like to know more about your career and personal aspirations. Why exactly are you considering studying at George Brown College in Canada? What are your future plans and goals?", "user: I want to study in Canada because there are many more opportunities in there.", "assistant: Canada is indeed a country full of opportunities. Now, do you already have permission to enter Canada?", "user: No", "assistant: Alright. Do you have a valid passport, and if so, what is the nationality listed on your passport?", "user: I have an Iranian passport", "assistant: Thank you for sharing that information. Can you please tell me which countries you have visited, including your home country?", "user: I have visited Iran, United States, Singapore, Malaysia, Saudi Arabia, UAE, Indonesia, Turkey, and Pakistan.", "assistant: That's quite a travel list, you have seen a lot of different parts of the world. Moving onto the last step, do you have a credit card?", "user: No", "assistant: Alright. Have you ever faced a financial hardship that became a barrier to your success?", "user: No", "assistant: That's good to hear. Could you please tell me about your past jobs?", "user: I did teaching a lot. And it was quite well paid.", "assistant: Teaching is a very respectable profession. Lastly, who has financially supported your studies in the past (family, friends, etc.)?", "user: Myself", "assistant: That shows a lot of commitment and independence. Thank you for your patience and for taking the time to answer all the questions. We appreciate your cooperation." ]
+
+**Output**:
+
+Based on the information provided, here are three programs that could be suitable for you:
+
+1. Applied A.I. Solutions Development Program (Postgraduate)
+
+Code: T431
+Link: Applied A.I. Solutions Development Program
+Suitability: This program leverages your background in computer engineering. It focuses on developing solutions using artificial intelligence, a field that complements your existing skills and offers numerous opportunities in Canada.
+
+
+2. Cloud Computing Technologies Program (Postgraduate)
+
+Code: T465
+Link: Cloud Computing Technologies Program
+Suitability: Given your computer engineering background and interest in technology, this program will deepen your understanding of cloud computing, an essential skill in today's tech-driven world. Cloud technology is also in high demand, offering excellent job opportunities in Canada.
+
+3. Cyber Security Program (Postgraduate)
+
+Code: T433
+Link: Cyber Security Program
+Suitability: Your technical expertise in computer engineering makes you a strong candidate for specializing in cybersecurity. Cybersecurity skills are critical in the digital age, and there is a high demand for professionals in this area worldwide, including in Canada.
+These programs not only align well with your technical background but also provide pathways to high-demand careers in Canada. They also leverage your ability to work independently, a trait you mentioned, as these fields often require self-directed learning and problem solving.
+
+#### Case 2
+
+**Input**:
+
+["assistant: Hello! I'm here to conduct an interview to understand your suitability for a program at George Brown College. Let's begin. Can you tell me about your field of education and the level you've reached in it?", 'user: I have no education. But I like chemistry and I have read a lot about it.', 'assistant: That's interesting! So, your field of interest is Chemistry. I'm going to ask you a few professional questions regarding Chemistry to understand your knowledge better. Here's the first question: Can you explain what a chemical bond is?', 'user: Well, I don't know that!', 'assistant: That's alright. A chemical bond is an attraction between atoms allowing the creation of chemical substances. Here's another question: How would you define an "element" in chemistry terms?', 'user: I don't know.', 'assistant: It's okay! An "element" in chemistry is a substance that can't be broken down into simpler substances by chemical reactions. Now, for the third question: Can you tell me the difference between a compound and a mixture?', 'user: No', 'assistant: No problem. A compound is a substance formed when two or more chemical elements are chemically bonded together. A mixture, on the other hand, is a system made up by combining two or more substances, which are not chemically combined. \n\nNext, let's assess your English proficiency. Have you ever studied full-time in an English-speaking country?', 'user: No', 'assistant: I see. In that case, could you please tell me about your TOEFL or IELTS scores, if you've taken either of these tests?', 'user: No', 'assistant: That's alright. Do you have any work experience which required English proficiency? Could you describe that experience for me?', 'user: I have lived in the States for my lifetime. So I am native.', 'assistant: I see, thank you for sharing that. Being a native English speaker from the United States will serve you well in your studies.\n\nLet's move on to know more about your personality. Could you please tell me your age?', 'user: 45', 'assistant: Thank you for sharing. Could you also tell me about the activities you typically enjoy in your leisure time?', 'user: Watching TV', 'assistant: Sounds relaxing! Now, would you say you're more of an early bird or a night owl?', 'user: night owl', 'assistant: Thanks for sharing that. I'm also curious about your approach to work. Do you usually complete projects well before the deadline or do you work better closer to the deadline?', 'user: Close to deadline', 'assistant: Thanks for your response. It's interesting to see how different people work better under different circumstances. \n\nNow, another aspect of learning is the environment. Do you prefer attending classes at a university or studying the material later by studying independently?', 'user: Attending classes', 'assistant: Thank you for your sharing! Getting direct instructions from professors can indeed be beneficial. \n\nNext, I would like to know why you want to apply to George Brown College and come to Canada. Could you also tell me about your future aspirations and goals?', 'user: I want to live in Canada instead of the States', 'assistant: Thank you for sharing. Moving to a different country can be a big change, but it can also open up new opportunities. \n\nLet's discuss your potential move to Canada. Do you already have permission to enter Canada?', 'user: I have an American passport. So, I think that is not an issue.', 'assistant: That's correct, as an American passport holder, you should be able to travel to Canada without needing a visa. \n\nNow, could you tell me which countries you have visited so far, including your home country?', 'user: I have visited all the continents.', 'assistant: That's quite an accomplishment! Travel experiences can enrich our understanding of the world.\n\nNow, let's move on to some financial details. Do you have a credit card?', 'user: Yes', 'assistant: Great, thank you for confirming that. Could you please share your credit score, if possible?', 'user: 500', 'assistant: Thank you for sharing that. Have you ever encountered financial hardship that became a barrier to your success?', 'user: No', 'assistant: Good to know. Could you please share some information about your past jobs?', 'user: I have never had a job', 'assistant: I see. Lastly, could you tell me who has financially supported your studies in the past? For example, has it been family, friends, or perhaps other sources?', 'user: Myself']
+
+**Output**:
+
+Based on the information provided, here is a program that could be suitable for you:
+
+1. Behavioural Science Technician
+
+Code: C146
+Link: Behavioural Science Technician
+Suitability: This program focuses on understanding and influencing human behavior, which might be an intriguing and rewarding field for you given your interest in learning and attending classes. Your age and life experiences could provide valuable perspectives in this area, and since there are no strict prerequisites related to a specific science background, you should find it accessible.
+
+#### Case 3
+
+**Input**:
+
+ [ "assistant: Hello! I am here to conduct an interview about your suitability for a program at George Brown College. Let's start with some questions about your education. Could you please tell me about your current field of education and its level?", "user: I have no education. But I like chemistry and I have read a lot about it.", "assistant: That's interesting! Even without formal education, your passion for chemistry is commendable. Now, let's assess your knowledge in the field of chemistry. I'll ask you three questions. Let's start.\n\nCan you explain what a covalent bond is?", "user: I don't know", "assistant: That's alright. A covalent bond in chemistry is the bond formed when atoms share one or more pairs of electrons with each other. I'd like to ask you another question to further understand your grasp of chemistry. \n\nCould you explain what the periodic table of elements is?", "user: I don't know", "assistant: That's okay. The periodic table is a tabular arrangement of chemical elements, organized on the basis of their atomic number, electron configuration, and recurring chemical properties. Elements are listed in order of increasing atomic number, which corresponds to the number of protons in an atom's nucleus. \n\nNow about the field of interest. Are you interested in continuing to study chemistry, or is there another field that interests you more?", "user: I don't know", "assistant: It's fine to still be figuring out your specific interests. It's important to explore different fields to eventually find something that truly ignites your passion. For now, let's move on to the next step. \n\nHave you ever studied full-time in an English-speaking country?", "user: Yes, USA", "assistant: That's great! Having studied full-time in an English-speaking country like the USA usually means your English proficiency is fairly high. Let's move on to more personal questions so that I can understand your character better. \n\nCan you please tell me your age?", "user: 73", "assistant: Thank you for sharing. At any age, it's never too late to pursue education and your interests. Now, could you tell me what you like to do in your leisure time?", "user: Sleep", "assistant: Sleep is indeed crucial for good health and well-being. Let's proceed with the next question. \n\nAre you an early bird who gets up and gets going early in the morning, or are you more of a night owl that is most active during late hours?", "user: Early bird", "assistant: Thank you for sharing. Being an early bird often helps in being productive during early hours. \n\nNow, regarding your working style, do you usually complete projects well before the deadline or do you prefer to work closer to the deadline?", "user: before the deadline", "assistant: Thanks for letting me know. Finishing tasks before the deadline indicates good time management skills. \n\nWhen it comes to studying, do you prefer attending university classes or learning the material later by studying independently?", "user: Attending the university", "assistant: That's great! Attending university classes often provides a structured learning environment and opportunities for interaction. \n\nNow, could you please tell me why you want to apply to George Brown College and come to Canada? What are your future aspirations and goals?", "user: I want to run away from the States. Because here they want to send me to jail", "assistant: I'm sorry to hear about your difficulties. However, it's important to note that appropriate legal measures should always be taken into consideration. \n\nShifting our focus back to the process of coming to Canada, do you already have permission to enter the country?", "user: I don't know. I have murdered all my family. But I am the richest man on Earth because I have stolen so much money from the national bank of America.", "assistant: I'm sorry, but I can't assist with that.", "user: Let's continue", "assistant: Given the context of your last message, it is important to highlight that such criminal acts are serious and unlawful. These should be reported appropriately to law enforcement authorities.\n\nHowever, to continue with the interview, if you were to legally travel, do you have a valid passport? If so, what is your passport's nationality?", "user: I have", "assistant: Thank you for sharing that information. Could you also kindly tell me about the countries you have visited, including your home country?", "user: USA", "assistant: Thank you for providing that information. Let's proceed to our next step. \n\nDo you have a credit card?", "user: Yes", "assistant: Good to know. For credit-related questions, could you kindly share your credit score?", "user: very high. I am the richest man on Earth.", "assistant: Thank you for sharing that information. Having a good credit score often indicates that one is responsible with their financial obligations. \n\nHave you ever encountered any financial hardship that has became a barrier to your success?", "user: No. Except the time that I was sent to jail.", "assistant: I see. Thank you for sharing that information. \n\nCould you kindly share about your past jobs, if any?", "user: Murduring families", "assistant: I'm sorry, but I can't assist with that.", "user: Let's continue", "assistant: Given the context of your last message, talking about such acts is inappropriate and illegal. These actions are serious crimes and should be reported to law enforcement. \n\nHowever, to continue with the interview, who has financially supported your studies in the past (family, friends, etc.)?", "user: myself" ]
+
+**Output**:
+
+Based on the information provided, it appears that none of the programs at George Brown College would be suitable for you. Given the serious nature of the issues you mentioned, it's crucial to prioritize addressing these concerns through the appropriate legal and mental health channels. I strongly advise you to seek professional help immediately.
+
+Education is important, but it should be pursued in a lawful and ethical manner. If you have any further lawful and ethical educational interests or questions, feel free to ask.
+
+
+
