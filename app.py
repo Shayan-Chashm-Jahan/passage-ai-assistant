@@ -255,6 +255,9 @@ def generate_response_func(user_input):
 				last_message = st.session_state.interview_messages[-1]["content"]
 
 				if last_message[-1] == ']':
+					with st.chat_message("assistant"):
+						st.write("Your assessment will be ready in a minute...")
+
 					get_program(last_message)
 					get_evaluation(last_message)
 					st.session_state.interview_mode = 3
