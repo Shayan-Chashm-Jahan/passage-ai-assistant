@@ -55,6 +55,9 @@ def initialize_conversation():
 	if 'program_suggester_thread' not in st.session_state:
 		st.session_state.program_suggester_thread = program_suggester_client.beta.threads.create()
 
+	if 'interviewer_thread' not in st.session_state:
+		st.session_state.interviewer_thread = interviewer_client.beta.threads.create()
+
 	if 'conversation_history' not in st.session_state:
 		st.session_state.conversation_history = []
 
@@ -119,6 +122,7 @@ def streamed_response_generator(stream):
 						if chunk != "" and chunk[0] != '&':
 							yield chunk
 
+	print(f" ---- {report=}")
 	st.session_state.assistant_response = "".join(report)
 
 def get_program(interview_messages):
@@ -165,7 +169,7 @@ def get_evaluation(interview_messages):
 	english_evaluator_client.beta.threads.messages.create(
 		 thread_id = st.session_state.english_evaluator_thread.id,
 		 role="user",
-		 content="\n".join(f"{interview_message["role"]}: {interview_message["content"]}" for interview_message in interview_messages)
+		 content=interview_messages
 	)
 
 	with english_evaluator_client.beta.threads.runs.stream(
@@ -193,15 +197,16 @@ def get_evaluation(interview_messages):
 
 
 def generate_response_func(user_input):
-	try:
+	# try:
 		if st.session_state.interview_mode % 2 == 0:
+				st.session_state.conversation_history.append({"role": "user", "content": user_input})
 				stream = client.beta.threads.create_and_run(
 					assistant_id=assistant.id,
 					thread={
 						"messages": st.session_state.conversation_history
 					},
 					stream=True,
-					timeout=60,
+					timeout=5,
 				)
 
 				with st.chat_message("assistant"):
@@ -218,41 +223,84 @@ def generate_response_func(user_input):
 						st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
 
 		else:
-				stream = interviewer_client.beta.threads.create_and_run(
-				assistant_id=interviewer_assistant.id,
-				thread={
-					"messages": st.session_state.interview_messages
-				},
-				stream=True,
-				timeout=60
-			)
-				with st.chat_message("assistant"):
-					st.write_stream(streamed_response_generator(stream))
-				
-				assistant_response = st.session_state.assistant_response
-				print(f"{assistant_response=}")
+				print("in func...")
 
-				if "END" in assistant_response:
-					s = assistant_response
-					start = s.find('[')
-					end = s.rfind(']')
-					s = s[start:end+1]
-					assistant_response = s
+				st.session_state.interview_messages.append({"role": "user", "content": user_input})
 
-					if assistant_response != "":
-						st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+				interviewer_client.beta.threads.messages.create(
+					thread_id = st.session_state.interviewer_thread.id,
+					role="user",
+					content=user_input
+				)
 
-					get_program(assistant_response)
-					get_evaluation(assistant_response)
+				while True:
+					print("in while...")
+					with interviewer_client.beta.threads.runs.stream(
+						thread_id=st.session_state.interviewer_thread.id,
+						assistant_id=interviewer_assistant.id,
+					) as stream:
+						stream.until_done()
+
+					messages = interviewer_client.beta.threads.messages.list(thread_id=st.session_state.interviewer_thread.id)
+
+					new_message = messages.data[0].content[0].text.value
+
+					print(f"{new_message=}")
+
+					if new_message != user_input:
+						st.session_state.interview_messages.append({"role": "assistant", "content": new_message})
+						break
+
+
+				last_message = st.session_state.interview_messages[-1]["content"]
+
+				if last_message[-1] == ']':
+					get_program(last_message)
+					get_evaluation(last_message)
 					st.session_state.interview_mode = 3
-
 					st.rerun()
 
-				if assistant_response != "":
-					st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+				with st.chat_message("assistant"):
+					st.write(last_message)
+
+
+			# 	st.session_state.interview_messages.append({"role": "user", "content": user_input})
+			# 	print(f"{st.session_state.interview_messages=}")
+			# 	stream = interviewer_client.beta.threads.create_and_run(
+			# 	assistant_id=interviewer_assistant.id,
+			# 	thread={
+			# 		"messages": st.session_state.interview_messages
+			# 	},
+			# 	stream=True,
+			# 	timeout=5
+			# )
+			# 	with st.chat_message("assistant"):
+			# 		st.write_stream(streamed_response_generator(stream))
+				
+			# 	assistant_response = st.session_state.assistant_response
+			# 	print(f"{assistant_response=}")
+
+			# 	if "END" in assistant_response:
+			# 		s = assistant_response
+			# 		start = s.find('[')
+			# 		end = s.rfind(']')
+			# 		s = s[start:end+1]
+			# 		assistant_response = s
+
+			# 		if assistant_response != "":
+			# 			st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
+
+			# 		get_program(st.session_state.interview_messages)
+			# 		get_evaluation(st.session_state.interview_messages)
+			# 		st.session_state.interview_mode = 3
+
+			# 		st.rerun()
+
+			# 	if assistant_response != "":
+			# 		st.session_state.interview_messages.append({"role": "assistant", "content": cleaned_response(assistant_response)})
 						
-	except Exception as e:
-		st.session_state.have_error = e
+	# except Exception as e:
+	# 	st.session_state.have_error = e
 
 def suggest_prompt_func(user_input):
 	second_client.beta.threads.messages.create(
@@ -285,12 +333,7 @@ def handle_user_input(user_input=None):
 			user_input = st.session_state.user_input
 			flag += 1
 
-	if user_input:
-			if st.session_state.interview_mode % 2 == 0:
-				st.session_state.conversation_history.append({"role": "user", "content": user_input})
-			else:
-				st.session_state.interview_messages.append({"role": "user", "content": user_input})
-	
+	if user_input:	
 			# threads = [Thread(target=generate_response_func(user_input))]
 
 			# if st.session_state.interview_mode % 2 == 0:
@@ -311,9 +354,7 @@ def handle_user_input(user_input=None):
 			if st.session_state.interview_mode % 2 == 0:
 				write_row(st.session_state.session_id, st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups))
 			else:
-				# TODO
-				# write_row(st.session_state.session_id, st.session_state.interview_messages[-2]['content'], st.session_state.interview_messages[-1]['content'], '-')
-				pass
+				write_row(st.session_state.session_id, st.session_state.interview_messages[-2]['content'], st.session_state.interview_messages[-1]['content'], '-')
 
 	if flag > 0:
 		st.session_state.user_input = ""  
@@ -464,48 +505,56 @@ if st.session_state.have_error != "":
 if selected == "Interview":
 	if st.session_state.interview_mode % 2 == 0:
 		st.session_state.interview_mode += 1
+		st.rerun()
 	
-	for message in st.session_state.get('interview_messages', []):
+	for message in st.session_state.interview_messages:
 		with st.chat_message(message['role']):
 			st.write(message['content'])
 
 	if prompt := st.chat_input(
-		"Ask a question",
-		disabled= not (st.session_state.clicked_button is None)
+		"Ask a question"
 	):
 		with st.chat_message("user"):
 			st.write(prompt)
 		handle_user_input(prompt)
 
-	if st.session_state.clicked_button:
-		str = st.session_state.clicked_button
-		st.session_state.clicked_button = None
+	# if prompt := st.chat_input(
+	# 	"Ask a question",
+	# 	disabled= not (st.session_state.clicked_button is None)
+	# ):
+	# 	with st.chat_message("user"):
+	# 		st.write(prompt)
+	# 	handle_user_input(prompt)
 
-		if str[-1] == '?':
-			with st.chat_message("user"):
-				st.write(str)
-			handle_user_input(str)
-		else:
-			write_row(st.session_state.session_id, st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), str)
+	# if st.session_state.clicked_button:
+	# 	str = st.session_state.clicked_button
+	# 	st.session_state.clicked_button = None
 
-		st.rerun()
+	# 	if str[-1] == '?':
+	# 		with st.chat_message("user"):
+	# 			st.write(str)
+	# 		handle_user_input(str)
+	# 	else:
+	# 		write_row(st.session_state.session_id, st.session_state.conversation_history[-2]['content'], st.session_state.conversation_history[-1]['content'], "#".join(st.session_state.follow_ups), str)
 
-	c = st.container()
-	col1, col2, col3 = c.columns((1, 1, 3))
+	# 	st.rerun()
 
-	with col1:
-		with st.popover("Report", use_container_width=True):
-			if st.session_state.feedback_flag:
-				st.container().markdown("Was the answer helpful?")
-				feedbacks = ["👍 Accurate", "🤔 Could have been better", "👎 Irrelevant or misinformation"]
+	# c = st.container()
+	# col1, col2, col3 = c.columns((1, 1, 3))
 
-				for feedback in feedbacks:
-					if st.button(feedback):
-						st.session_state.feedback_flag = False
-						st.session_state.clicked_button = feedback
+	# with col1:
+	# 	with st.popover("Report", use_container_width=True):
+	# 		if st.session_state.feedback_flag:
+	# 			st.container().markdown("Was the answer helpful?")
+	# 			feedbacks = ["👍 Accurate", "🤔 Could have been better", "👎 Irrelevant or misinformation"]
 
-	if st.session_state.clicked_button:
-		st.rerun()
+	# 			for feedback in feedbacks:
+	# 				if st.button(feedback):
+	# 					st.session_state.feedback_flag = False
+	# 					st.session_state.clicked_button = feedback
+
+	# if st.session_state.clicked_button:
+	# 	st.rerun()
 
 if len(st.session_state.conversation_history) > 26:
 	st.session_state.conversation_history = st.session_state.conversation_history[-26:]
