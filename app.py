@@ -70,8 +70,8 @@ def initialize_conversation():
 	if 'interview_mode' not in st.session_state:
 		st.session_state.interview_mode = 0
 
-	if 'all_user_messages' not in st.session_state:
-		st.session_state.all_user_messages = ""
+	if 'interview_started' not in st.session_state:
+		st.session_state.interview_started = False
 
 	if 'interview_messages' not in st.session_state:
 		st.session_state.interview_messages = []
@@ -125,7 +125,17 @@ def streamed_response_generator(stream):
 	print(f" ---- {report=}")
 	st.session_state.assistant_response = "".join(report)
 
-def get_program(interview_messages):
+def get_messages_string(interview_messages):
+	messages_list = []
+	for message in interview_messages:
+		messages_list.append(f"{message["role"]}: {message["content"]}")
+
+	modified_list = [f"\"{message}\"" for message in messages_list]
+	return f"[{', '.join(modified_list)}]"
+
+def get_program():
+	interview_messages = get_messages_string(st.session_state.interview_messages)
+
 	program_suggester_client.beta.threads.messages.create(
 		 thread_id = st.session_state.program_suggester_thread.id,
 		 role="user",
@@ -143,7 +153,9 @@ def get_program(interview_messages):
 	st.session_state.program_suggestion = messages.data[0].content[0].text.value
 
 
-def get_evaluation(interview_messages):
+def get_evaluation():
+	interview_messages = get_messages_string(st.session_state.interview_messages)
+
 	evaluator_client.beta.threads.messages.create(
 		 thread_id = st.session_state.evaluator_thread.id,
 		 role="user",
@@ -254,12 +266,12 @@ def generate_response_func(user_input):
 
 				last_message = st.session_state.interview_messages[-1]["content"]
 
-				if last_message[-1] == ']':
+				if last_message == '&&':
 					with st.chat_message("assistant"):
-						st.write("Your assessment will be ready in a minute...")
+						st.write("Thank you. The interview is over. Your assessment will be ready in a minute...")
 
-					get_program(last_message)
-					get_evaluation(last_message)
+					get_program()
+					get_evaluation()
 					st.session_state.interview_mode = 3
 					st.rerun()
 
@@ -505,12 +517,25 @@ if selected == "Assessment":
 if st.session_state.have_error != "":
 	st.container().markdown(st.session_state.have_error)
 
-if selected == "Interview":
+if selected == "Interview" and not st.session_state.interview_started:
+	with st.chat_message("assistant"):
+		st.container().markdown("**The interview takes around 10 minutes. Are you ready to start?**")
+
+	if st.button("start"):
+		st.session_state.interview_started = True
+		st.session_state.interview_mode = 1
+		st.rerun()
+
+if selected == "Interview" and st.session_state.interview_started:
 	if st.session_state.interview_mode % 2 == 0:
 		st.session_state.interview_mode += 1
 		st.rerun()
 	
-	for message in st.session_state.interview_messages:
+	if len(st.session_state.interview_messages) == 0:
+		handle_user_input("Hi")
+		st.rerun()
+
+	for message in st.session_state.interview_messages[1:]:
 		with st.chat_message(message['role']):
 			st.write(message['content'])
 
