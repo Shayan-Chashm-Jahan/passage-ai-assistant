@@ -374,6 +374,16 @@ def handle_user_input(user_input=None):
 	if flag > 0:
 		st.session_state.user_input = ""  
 
+def colored_box(text, color):
+  return st.container().markdown(
+    f"""
+    <div style="background-color: {color}; padding: 10px; border-radius: 5px;">
+        <p style="color: white;">{text}</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+  )
+
 if st.session_state.interview_mode == 0:
 	with st.sidebar:
 		selected = option_menu(
@@ -407,6 +417,14 @@ if selected == "Chat" and st.session_state.have_error == "":
 	if st.session_state.interview_mode % 2:
 		st.session_state.interview_mode -= 1
 		st.rerun()
+
+	st.container().markdown(f"""
+      <div style="background-color: #ff8a4b; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
+          <p style="color: white; font-size: 20px; margin: 0;"> I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.</p>
+      </div>
+      """, unsafe_allow_html=True)
+	
+	# colored_box("**I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.**", "#FFFFFF")
 
 	# container_css = """
 	# <style>
