@@ -128,7 +128,7 @@ def streamed_response_generator(stream):
 def get_messages_string(interview_messages):
 	messages_list = []
 	for message in interview_messages:
-		messages_list.append(f"{message["role"]}: {message["content"]}")
+		messages_list.append(f"""{message["role"]}: {message["content"]}""")
 
 	modified_list = [f"\"{message}\"" for message in messages_list]
 	return f"[{', '.join(modified_list)}]"
