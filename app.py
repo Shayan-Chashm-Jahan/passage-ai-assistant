@@ -419,8 +419,8 @@ if selected == "Chat" and st.session_state.have_error == "":
 		st.rerun()
 
 	st.container().markdown(f"""
-      <div style="background-color: #ff8a4b; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
-          <p style="color: white; font-size: 20px; margin: 0;"> I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.</p>
+      <div style="background-color: #2E2633; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
+          <p style="color: #FF8A4B; font-size: 20px; margin: 0;"> I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.</p>
       </div>
       """, unsafe_allow_html=True)
 	
