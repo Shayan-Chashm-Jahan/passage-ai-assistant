@@ -8,6 +8,7 @@ from streamlit_option_menu import option_menu
 from logs_notion import write_row
 from utils import cleaned_response, create_gauge
 import random
+import sys
 
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
@@ -38,6 +39,9 @@ st.set_page_config(
     page_title="GBC AI Assistant",
     page_icon="./img/page-icon.png" 
 )
+
+st.write("Currently down, please check back later!")
+sys.exit(0)
 
 def initialize_conversation():
 	if 'chat_thread' not in st.session_state:
@@ -121,6 +125,10 @@ def streamed_response_generator(stream):
 						report.append(content.text.value)
 						if chunk != "" and chunk[0] != '&':
 							yield chunk
+						if chunk[0] == '&':
+							st.session_state.assistant_response = "Please follow me to the interview room..."
+							yield st.session_state.assistant_response
+							return
 
 	print(f" ---- {report=}")
 	st.session_state.assistant_response = "".join(report)
@@ -135,6 +143,9 @@ def get_messages_string(interview_messages):
 
 def get_program():
 	interview_messages = get_messages_string(st.session_state.interview_messages)
+
+	print(" ### The LIST: ###")
+	print(interview_messages)
 
 	program_suggester_client.beta.threads.messages.create(
 		 thread_id = st.session_state.program_suggester_thread.id,
@@ -226,7 +237,8 @@ def generate_response_func(user_input):
 
 				assistant_response = st.session_state.assistant_response
 
-				if assistant_response == "&&":
+				if assistant_response == "Please follow me to the interview room...":
+					st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
 					st.session_state.interview_mode += 1
 					st.rerun()
 
@@ -418,11 +430,11 @@ if selected == "Chat" and st.session_state.have_error == "":
 		st.session_state.interview_mode -= 1
 		st.rerun()
 
-	st.container().markdown(f"""
-      <div style="background-color: #2E2633; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
-          <p style="color: #FF8A4B; font-size: 20px; margin: 0;"> I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.</p>
-      </div>
-      """, unsafe_allow_html=True)
+	# st.container().markdown(f"""
+    #   <div style="background-color: #2E2633; padding: 5px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
+    #       <p style="color: #FF8A4B; font-size: 20px; margin: 0;"> I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.</p>
+    #   </div>
+    #   """, unsafe_allow_html=True)
 	
 	# colored_box("**I am supposed to respond merely based on the documents provided to me. I'm set to use no outside knowledge. Tough my data is not complete yet, so I might not be able to answer all your questions at the moment.**", "#FFFFFF")
 
