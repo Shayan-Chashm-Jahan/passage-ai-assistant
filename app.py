@@ -40,8 +40,8 @@ st.set_page_config(
     page_icon="./img/page-icon.png" 
 )
 
-st.write("Currently down, please check back later!")
-sys.exit(0)
+# st.write("Currently down, please check back later!")
+# sys.exit(0)
 
 def initialize_conversation():
 	if 'chat_thread' not in st.session_state:
@@ -79,6 +79,9 @@ def initialize_conversation():
 
 	if 'interview_messages' not in st.session_state:
 		st.session_state.interview_messages = []
+
+	if 'interview_messages_copy' not in st.session_state:
+		st.session_state.interview_messages_copy = []
 
 	if 'score' not in st.session_state:
 		st.session_state.score = {}
@@ -142,7 +145,7 @@ def get_messages_string(interview_messages):
 	return f"[{', '.join(modified_list)}]"
 
 def get_program():
-	interview_messages = get_messages_string(st.session_state.interview_messages)
+	interview_messages = get_messages_string(st.session_state.interview_messages_copy)
 
 	print(" ### The LIST: ###")
 	print(interview_messages)
@@ -165,7 +168,7 @@ def get_program():
 
 
 def get_evaluation():
-	interview_messages = get_messages_string(st.session_state.interview_messages)
+	interview_messages = get_messages_string(st.session_state.interview_messages_copy)
 
 	evaluator_client.beta.threads.messages.create(
 		 thread_id = st.session_state.evaluator_thread.id,
@@ -250,6 +253,7 @@ def generate_response_func(user_input):
 				print("in func...")
 
 				st.session_state.interview_messages.append({"role": "user", "content": user_input})
+				st.session_state.interview_messages_copy.append({"role": "user", "content": user_input})
 
 				interviewer_client.beta.threads.messages.create(
 					thread_id = st.session_state.interviewer_thread.id,
@@ -273,6 +277,7 @@ def generate_response_func(user_input):
 
 					if new_message != user_input:
 						st.session_state.interview_messages.append({"role": "assistant", "content": new_message})
+						st.session_state.interview_messages_copy.append({"role": "assistant", "content": new_message})
 						break
 
 
@@ -565,7 +570,7 @@ if selected == "Interview" and st.session_state.interview_started:
 		handle_user_input("Hi")
 		st.rerun()
 
-	for message in st.session_state.interview_messages[1:]:
+	for message in st.session_state.interview_messages_copy[1:]:
 		with st.chat_message(message['role']):
 			st.write(message['content'])
 
@@ -614,9 +619,9 @@ if selected == "Interview" and st.session_state.interview_started:
 	# if st.session_state.clicked_button:
 	# 	st.rerun()
 
-if len(st.session_state.conversation_history) > 26:
+if len(st.session_state.conversation_history) > 30:
 	st.session_state.conversation_history = st.session_state.conversation_history[-26:]
 
-if len(st.session_state.interview_messages) > 26:
+if len(st.session_state.interview_messages) > 30:
 	st.session_state.interview_messages = st.session_state.interview_messages[-26:]
 
