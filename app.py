@@ -109,6 +109,9 @@ def initialize_conversation():
 	if 'temp' not in st.session_state:
 		st.session_state.temp = []
 
+	if 'chat_disabled' not in st.session_state:
+		st.session_state.chat_disabled = False
+
 
 	initial_messages = ["What are the benefits of studying at George Brown College?", "What are the admission requirements for international students?", "What support services are available for students at George Brown College?"]
 
@@ -215,6 +218,9 @@ def get_evaluation():
 	t = t[start:end+1]
 
 	sd = json.loads(s)
+
+	print(f" ------ This is t:  ----- \n {t}")
+
 	td = json.loads(t)
 
 	sd["english"] = td["english"]
@@ -223,6 +229,7 @@ def get_evaluation():
 
 
 def generate_response_func(user_input):
+		st.session_state.chat_disabled = True
 	# try:
 		if st.session_state.interview_mode % 2 == 0:
 				st.session_state.conversation_history.append({"role": "user", "content": user_input})
@@ -243,6 +250,7 @@ def generate_response_func(user_input):
 				if assistant_response == "Please follow me to the interview room...":
 					st.session_state.conversation_history.append({"role": "assistant", "content": cleaned_response(assistant_response)})
 					st.session_state.interview_mode += 1
+					st.session_state.chat_disabled = False
 					st.rerun()
 
 				else:
@@ -290,10 +298,13 @@ def generate_response_func(user_input):
 					get_program()
 					get_evaluation()
 					st.session_state.interview_mode = 3
+					st.session_state.chat_disabled = False
 					st.rerun()
 
 				with st.chat_message("assistant"):
 					st.write(last_message)
+
+		st.session_state.chat_disabled = False
 
 
 			# 	st.session_state.interview_messages.append({"role": "user", "content": user_input})
@@ -389,7 +400,7 @@ def handle_user_input(user_input=None):
 				write_row(st.session_state.session_id, st.session_state.interview_messages[-2]['content'], st.session_state.interview_messages[-1]['content'], '-')
 
 	if flag > 0:
-		st.session_state.user_input = ""  
+		st.session_state.user_input = "" 
 
 def colored_box(text, color):
   return st.container().markdown(
@@ -464,7 +475,7 @@ if selected == "Chat" and st.session_state.have_error == "":
 
 	if prompt := st.chat_input(
 		"Ask a question",
-		disabled= not (st.session_state.clicked_button is None)
+		disabled = st.session_state.chat_disabled
 	):
 		with st.chat_message("user"):
 					st.write(prompt)
@@ -492,6 +503,7 @@ if selected == "Chat" and st.session_state.have_error == "":
 				for question in st.session_state.follow_ups:
 					if st.button(f"{question[:-1]}❓"):
 						st.session_state.clicked_button = question
+						st.session_state.chat_disabled = True
 
 	with col2:
 		with st.popover("Report", use_container_width=True):
@@ -503,6 +515,7 @@ if selected == "Chat" and st.session_state.have_error == "":
 					if st.button(feedback):
 							st.session_state.feedback_flag = False
 							st.session_state.clicked_button = feedback
+							st.session_state.chat_disabled = True
 
 	if st.session_state.clicked_button:
 		st.rerun()
@@ -537,6 +550,8 @@ if selected == "Assessment":
 		if info['score'] < 5:
 				info['score'] = 5
 
+		col.markdown(f"### {label.title()}")
+
 		fig = create_gauge(info['score'], label)
 		col.plotly_chart(fig, use_container_width=True)
 		col.markdown(f"<div style='min-height: 150px;'>{info['reason']}</div>", unsafe_allow_html=True)
@@ -564,10 +579,12 @@ if selected == "Interview" and not st.session_state.interview_started:
 if selected == "Interview" and st.session_state.interview_started:
 	if st.session_state.interview_mode % 2 == 0:
 		st.session_state.interview_mode += 1
+		st.session_state.chat_disabled = False
 		st.rerun()
 	
 	if len(st.session_state.interview_messages) == 0:
 		handle_user_input("Hi")
+		st.session_state.chat_disabled = False
 		st.rerun()
 
 	for message in st.session_state.interview_messages_copy[1:]:
@@ -575,7 +592,7 @@ if selected == "Interview" and st.session_state.interview_started:
 			st.write(message['content'])
 
 	if prompt := st.chat_input(
-		"Ask a question"
+		"Send message to the interviewer"#, disabled=st.session_state.chat_disabled
 	):
 		with st.chat_message("user"):
 			st.write(prompt)
