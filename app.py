@@ -9,6 +9,14 @@ from logs_notion import write_row
 from utils import cleaned_response, create_gauge
 import random
 import sys
+from voice import record_audio, load_and_process_audio, transcribe_audio
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+import streamlit as st
+import sounddevice as sd
+from scipy.io.wavfile import write
+import torchaudio
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+import torch
 
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
@@ -33,6 +41,10 @@ evaluator_assistant = evaluator_client.beta.assistants.retrieve(st.secrets["EVAL
 ENGLISH_EVAL_API_KEY = st.secrets["ENGLISH_EVAL_API_KEY"]
 english_evaluator_client = OpenAI(api_key=ENGLISH_EVAL_API_KEY)
 english_evaluator_assistant = english_evaluator_client.beta.assistants.retrieve(st.secrets["ENGLISH_EVAL_ID"])
+
+SPEECH_API_KEY = st.secrets["SPEECH_API_KEY"]
+speech_client = OpenAI(api_key=SPEECH_API_KEY)
+speech_assistant = speech_client.beta.assistants.retrieve(st.secrets["SPEECH_ID"])
 
 st.set_page_config(
 	layout="wide",
@@ -61,6 +73,9 @@ def initialize_conversation():
 
 	if 'interviewer_thread' not in st.session_state:
 		st.session_state.interviewer_thread = interviewer_client.beta.threads.create()
+
+	if 'speech_thread' not in st.session_state:
+		st.session_state.speech_thread = speech_client.beta.threads.create()
 
 	if 'conversation_history' not in st.session_state:
 		st.session_state.conversation_history = []
@@ -415,15 +430,15 @@ def colored_box(text, color):
 if st.session_state.interview_mode == 0:
 	with st.sidebar:
 		selected = option_menu(
-				"Main Menu", ["About", "Chat", "Interview"],
-				icons=['info', 'chat', 'person-lines-fill'],
+				"Main Menu", ["About", "Chat", "Interview", "Speech"],
+				icons=["info", "chat", "person-lines-fill", "mic"],
 				menu_icon="cast", default_index=1
 		)
 elif st.session_state.interview_mode == 1:
 	with st.sidebar:
 		selected = option_menu(
-				"Main Menu", ["About", "Chat", "Interview"],
-				icons=['info', 'chat', 'person-lines-fill'],
+				"Main Menu", ["About", "Chat", "Interview", "Speech"],
+				icons=["info", "chat", "person-lines-fill", "mic"],
 				menu_icon="cast", default_index=2
 		)
 elif st.session_state.interview_mode == 2:
@@ -642,3 +657,55 @@ if len(st.session_state.conversation_history) > 30:
 if len(st.session_state.interview_messages) > 30:
 	st.session_state.interview_messages = st.session_state.interview_messages[-26:]
 
+
+if selected == "Speech":
+	# Constants
+	FS = 44100  # Sample rate
+	SECONDS = 20  # Duration of recording
+
+	# Streamlit layout
+	st.title("Voice Recorder")
+	st.write("Click the button to start recording.")
+
+	# Load the processor and model
+	processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+	model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+
+	if st.button('Start Recording'):
+		with st.spinner(f'Recording for {SECONDS} seconds...'):
+			record_audio()
+		st.success('Recording finished!')
+		
+		audio_file_path = "output.wav"
+
+		# Load and process audio
+		input_values = load_and_process_audio(audio_file_path)
+
+		# Transcribe audio
+		transcription = transcribe_audio(input_values)
+
+		# Print the transcription
+		print("Transcription:", transcription)
+
+		speech_client.beta.threads.messages.create(
+					thread_id = st.session_state.speech_thread.id,
+					role="user",
+					content=transcription
+				)
+
+		while True:
+			with speech_client.beta.threads.runs.stream(
+				thread_id=st.session_state.speech_thread.id,
+				assistant_id=speech_assistant.id,
+			) as stream:
+				stream.until_done()
+
+			messages = speech_client.beta.threads.messages.list(thread_id=st.session_state.speech_thread.id)
+
+			new_message = messages.data[0].content[0].text.value
+
+			if new_message != transcription:
+				transcription = new_message
+				break
+
+		st.text_area("Transcript", value=transcription, height=200)
