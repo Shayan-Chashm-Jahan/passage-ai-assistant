@@ -1,27 +1,43 @@
-import streamlit as st
-import sounddevice as sd
-from scipy.io.wavfile import write
-import torchaudio
+import pyaudio
+import wave
+from pydub import AudioSegment
 from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
 import torch
-
+import torchaudio
 
 # Constants
 FS = 44100  # Sample rate
-SECONDS = 5  # Duration of recording
-
-# Streamlit layout
-st.title("Voice Recorder")
-st.write("Click the button to start recording.")
+SECONDS = 20  # Duration of recording
 
 # Load the processor and model
 processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
 model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
 
-def record_audio(duration=SECONDS, fs=FS):
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
-    sd.wait()  # Wait until recording is finished
-    write('output.wav', fs, recording)  # Save as WAV file
+def record_audio(file_path="output.wav", duration=SECONDS, fs=FS):
+    p = pyaudio.PyAudio()
+
+    stream = p.open(format=pyaudio.paInt16,
+                    channels=1,
+                    rate=fs,
+                    input=True,
+                    frames_per_buffer=1024)
+
+    frames = []
+
+    for _ in range(0, int(fs / 1024 * duration)):
+        data = stream.read(1024)
+        frames.append(data)
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    wf = wave.open(file_path, 'wb')
+    wf.setnchannels(1)
+    wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+    wf.setframerate(fs)
+    wf.writeframes(b''.join(frames))
+    wf.close()
 
 def load_and_process_audio(file_path):
     # Load audio file
@@ -47,22 +63,3 @@ def transcribe_audio(input_values):
     # Decode the IDs to text
     transcription = processor.decode(predicted_ids[0])
     return transcription
-
-
-if st.button('Start Recording'):
-    with st.spinner(f'Recording for {SECONDS} seconds...'):
-        record_audio()
-    st.success('Recording finished!')
-    
-    audio_file_path = "output.wav"
-
-    # Load and process audio
-    input_values = load_and_process_audio(audio_file_path)
-
-    # Transcribe audio
-    transcription = transcribe_audio(input_values)
-
-    # Print the transcription
-    print("Transcription:", transcription)
-
-    st.text_area("Transcript", value=transcription, height=200)
