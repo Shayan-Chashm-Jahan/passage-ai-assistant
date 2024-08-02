@@ -1,6 +1,4 @@
 import json
-from threading import Thread
-import time
 from openai import OpenAI
 import streamlit as st
 import re
@@ -8,15 +6,12 @@ from streamlit_option_menu import option_menu
 from logs_notion import write_row
 from utils import cleaned_response, create_gauge
 import random
-import sys
-from voice import record_audio, load_and_process_audio, transcribe_audio
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
-import streamlit as st
-import sounddevice as sd
-from scipy.io.wavfile import write
-import torchaudio
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
-import torch
+import io
+from st_audiorec import st_audiorec
+import numpy as np
+import soundfile as sf
+from transcription import transcribe
+
 
 API_KEY = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=API_KEY)
@@ -659,53 +654,31 @@ if len(st.session_state.interview_messages) > 30:
 
 
 if selected == "Speech":
-	# Constants
-	FS = 44100  # Sample rate
-	SECONDS = 20  # Duration of recording
+	for message in st.session_state.get('conversation_history', []):
+		with st.chat_message(message['role']):
+			st.write(message['content'])
 
-	# Streamlit layout
-	st.title("Voice Recorder")
-	st.write("Click the button to start recording.")
+	try:
+		wav_audio_data = st_audiorec()
 
-	# Load the processor and model
-	processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-	model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+		if wav_audio_data is not None:
+			# st.audio(wav_audio_data, format='audio/wav')
 
-	if st.button('Start Recording'):
-		with st.spinner(f'Recording for {SECONDS} seconds...'):
-			record_audio()
-		st.success('Recording finished!')
-		
-		audio_file_path = "output.wav"
+			# Convert the audio data to numpy array
+			audio_array = np.frombuffer(wav_audio_data, dtype=np.float32)
+			
+			# Create an in-memory buffer and write the audio data as a WAV file
+			audio_buffer = io.BytesIO()
+			sf.write(audio_buffer, audio_array, samplerate=44100, format='WAV')
+			audio_buffer.seek(0)  # Rewind the buffer
+			audio_buffer.name = "audio.wav"  # Set the name attribute to indicate the file type
 
-		# Load and process audio
-		input_values = load_and_process_audio(audio_file_path)
+			# Transcribe the audio
+			transcription_text = transcribe(audio_buffer)
 
-		# Transcribe audio
-		transcription = transcribe_audio(input_values)
+			handle_user_input(transcription_text)
 
-		# Print the transcription
-		print("Transcription:", transcription)
+			st.rerun()
 
-		speech_client.beta.threads.messages.create(
-					thread_id = st.session_state.speech_thread.id,
-					role="user",
-					content=transcription
-				)
-
-		while True:
-			with speech_client.beta.threads.runs.stream(
-				thread_id=st.session_state.speech_thread.id,
-				assistant_id=speech_assistant.id,
-			) as stream:
-				stream.until_done()
-
-			messages = speech_client.beta.threads.messages.list(thread_id=st.session_state.speech_thread.id)
-
-			new_message = messages.data[0].content[0].text.value
-
-			if new_message != transcription:
-				transcription = new_message
-				break
-
-		st.text_area("Transcript", value=transcription, height=200)
+	except Exception as e:
+		st.write(f"An error occurred: {str(e)}")
